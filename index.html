@@ -617,27 +617,42 @@ function renderP12SectionC(raw) {
 // ── HELPERS ───────────────────────────────────────────────────────────────────
 function extractParts(raw, qNum) {
   const result = {};
-  // First try to isolate just this question block
-  const qPatterns = [
-    new RegExp('(?:^|\n)\s*(?:Question\s*' + qNum + '|Q' + qNum + ')\b[^\n]*\n([\s\S]*?)(?=\n\s*(?:Question\s*\d|Q\d|Section\s+[ABC])|$)', 'i'),
-    new RegExp('(?:^|\n)\s*\*{0,2}(?:Question\s*' + qNum + '|Q' + qNum + ')\b[^\n]*\n([\s\S]*?)(?=\n\s*\*{0,2}(?:Question\s*\d|Q\d|Section)|$)', 'i'),
-  ];
+  // Isolate this question block using string operations to avoid regex escape issues
+  const qLabel = 'Question ' + qNum;
+  const qLabelAlt = 'Q' + qNum;
   let text = raw;
-  for (const pat of qPatterns) {
-    const m = raw.match(pat);
-    if (m && m[1]) { text = m[1]; break; }
+  const lines = raw.split('\n');
+  let startLine = -1;
+  let endLine = lines.length;
+  for (let i = 0; i < lines.length; i++) {
+    const stripped = lines[i].replace(/[*_#]/g, '').trim();
+    if (startLine === -1 && (stripped.startsWith(qLabel) || stripped === qLabelAlt)) {
+      startLine = i + 1;
+    } else if (startLine !== -1) {
+      const isNextQ = /^\s*[*_#]*\s*Question\s*\d/.test(lines[i]) || /^\s*Q\d\b/.test(lines[i]);
+      const isSection = /^\s*[*_#]*\s*Section\s+[ABC]/i.test(lines[i]);
+      if (isNextQ || isSection) { endLine = i; break; }
+    }
   }
-  // Match parts like (a), (b) etc — handle markdown formatting around them
-  const partPattern = /(?:^|\n)\s*[*_]{0,2}\(([a-e])\)[*_]{0,2}\s*([\s\S]*?)(?=(?:\n\s*[*_]{0,2}\([a-e]\))|(?:\n\s*---)|(?:\n\s*\*{2,3}\s*$)|$)/gi;
-  const matches = [...text.matchAll(partPattern)];
-  matches.forEach(m => {
-    const letter = m[1].toLowerCase();
-    const partText = m[2].trim()
-      .replace(/^[*_]+|[*_]+$/g, '')  // strip leading/trailing markdown
-      .replace(/\(\d+\)\s*$/, '')     // strip trailing mark count
-      .replace(/\[\d+\s*marks?\]/gi, '') // strip [X marks]
+  if (startLine !== -1) {
+    text = lines.slice(startLine, endLine).join('\n');
+  }
+  // Split on part labels (a), (b), (c) etc
+  const partPattern = /(?:^|\n)\s*[*_]{0,2}\(([a-e])\)[*_]{0,2}\s*/g;
+  const partStarts = [];
+  let pm;
+  while ((pm = partPattern.exec(text)) !== null) {
+    partStarts.push({ letter: pm[1].toLowerCase(), index: pm.index + pm[0].length });
+  }
+  partStarts.forEach((ps, i) => {
+    const end = i + 1 < partStarts.length ? partStarts[i+1].index - partStarts[i+1].letter.length - 3 : text.length;
+    const partText = text.slice(ps.index, end).trim()
+      .replace(/^[*_]+|[*_]+$/g, '')
+      .replace(/\(\d+\)\s*$/, '')
+      .replace(/\[\d+\s*marks?\]/gi, '')
+      .replace(/---+/g, '')
       .trim();
-    result[letter] = partText;
+    result[ps.letter] = partText;
   });
   return result;
 }
