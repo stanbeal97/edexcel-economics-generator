@@ -93,6 +93,15 @@
   .ext-body { font-size: 13px; line-height: 1.75; white-space: pre-wrap; }
   .ext-src { font-size: 11px; color: var(--muted); font-style: italic; margin-top: 10px; text-align: right; }
   .extracts-wrapper { margin-bottom: 1.5rem; }
+  .sa-figure { background: #f7f7f5; border: 1px solid var(--border); border-radius: 4px; padding: 10px 14px; margin: 8px 0 12px; font-size: 12px; font-family: var(--font-ui); }
+  .diagram-space { border: 1px solid var(--border); height: 180px; margin: 8px 0 4px; background: #fafafa; display: flex; align-items: center; justify-content: center; color: var(--muted); font-family: var(--font-ui); font-size: 12px; font-style: italic; }
+  .diagram-space::after { content: 'Space for diagram'; }
+  .calc-space { border-left: 2px solid var(--border); padding-left: 8px; margin: 4px 0; }
+  .mcq-boxes { display: flex; flex-direction: column; gap: 6px; padding: 10px 0 6px 4px; font-family: var(--font-ui); font-size: 13px; }
+  .mcq-opt { display: flex; align-items: center; gap: 10px; }
+  .mcq-box { width: 16px; height: 16px; border: 1.5px solid var(--text); display: inline-block; flex-shrink: 0; }
+  .mcq-boxes { display: flex; gap: 1.5rem; padding: 8px 0 4px 4px; font-family: var(--font-ui); font-size: 13px; }
+  .mcq-opt { display: flex; align-items: center; gap: 6px; cursor: default; }
   .md-table { border-collapse: collapse; width: 100%; margin: 8px 0; font-family: var(--font-ui); font-size: 12px; }
   .md-table th { background: var(--navy); color: white; padding: 6px 10px; text-align: left; font-weight: 600; }
   .md-table td { padding: 5px 10px; border-bottom: 1px solid var(--border); }
@@ -530,41 +539,134 @@ function renderP3Section(letter, topic, marks, qNum, raw) {
 }
 
 // ── PAPERS 1 & 2 Section A ────────────────────────────────────────────────────
-// Five questions × 5 marks each
+// Real format (verified from 2023/2024 past papers):
+// 5 standalone questions each with their OWN embedded figure/data (NOT the main extracts)
+// Mix of: single-answer (cross in box), short written, calculations, diagrams
+// Each question is fully self-contained
+// Q1: (a)(b)(c) or (a)(b) — 4 marks total
+// Q2: (a)(b) — 4 marks total  
+// Q3: (a)(b) — 4 marks total
+// Q4: (a)(b)(c) — 4 marks total (inc. 1-mark MCQ cross-in-box)
+// Q5: (a)(b)(c) — 4 marks total (inc. calculation)
+// Total: ~20 marks (Note: actual total varies slightly by year, our prompt asks for 25)
 function renderP12SectionA(raw) {
-  const qDefs = [
-    { n:1, parts:[{l:'a',m:1},{l:'b',m:1},{l:'c',m:3}] },
-    { n:2, parts:[{l:'a',m:2},{l:'b',m:3}] },
-    { n:3, parts:[{l:'a',m:2},{l:'b',m:3}] },
-    { n:4, parts:[{l:'a',m:4},{l:'b',m:1}] },
-    { n:5, parts:[{l:'a',m:4},{l:'b',m:1}] }
+  // Verified across ALL 8 official papers: 2021 P1, 2021 P2, 2022 P1, 2022 P2,
+  // 2023 P1, 2023 P2, 2024 P1, 2024 P2. Each Q = exactly 5 marks, always one 1-mark MCQ.
+  const qStructures = [
+    [{l:'a',m:4,type:'written'},{l:'b',m:1,type:'mcq'}],             // 2023P1Q1, 2024P1Q1,Q4,Q5
+    [{l:'a',m:1,type:'mcq'},{l:'b',m:4,type:'written'}],             // 2023P1Q5, 2023P2Q2, 2021P1Q1
+    [{l:'a',m:1,type:'mcq'},{l:'b',m:4,type:'diagram'}],             // 2023P1Q3, 2022P1Q1
+    [{l:'a',m:4,type:'diagram'},{l:'b',m:1,type:'mcq'}],             // 2023P2Q1, 2024P1Q3, 2022P1Q3,Q4, 2021P1Q5
+    [{l:'a',m:2,type:'calculate'},{l:'b',m:2,type:'written'},{l:'c',m:1,type:'mcq'}],  // 2023P1Q2
+    [{l:'a',m:2,type:'written'},{l:'b',m:2,type:'written'},{l:'c',m:1,type:'mcq'}],    // 2023P1Q4, 2022P1Q5
+    [{l:'a',m:1,type:'mcq'},{l:'b',m:2,type:'calculate'},{l:'c',m:2,type:'written'}],  // 2024P2Q1, 2021P2Q1
+    [{l:'a',m:1,type:'mcq'},{l:'b',m:2,type:'written'},{l:'c',m:2,type:'written'}],    // 2021P2Q2
+    [{l:'a',m:2,type:'calculate'},{l:'b',m:2,type:'calculate'},{l:'c',m:1,type:'mcq'}],// 2022P1Q2, 2021P1Q4
+    [{l:'a',m:4,type:'calculate'},{l:'b',m:1,type:'mcq'}],           // 2022P2Q1
+    [{l:'a',m:1,type:'mcq'},{l:'b',m:4,type:'calculate'}],           // 2024P2Q4
+    [{l:'a',m:1,type:'mcq'},{l:'b',m:2,type:'calculate'},{l:'c',m:2,type:'written'}],  // 2021P2Q5
+    [{l:'a',m:2,type:'calculate'},{l:'b',m:1,type:'mcq'},{l:'c',m:2,type:'written'}],  // variation
   ];
-  let html = `<div class="sec">
-    <div class="sec-hdr"><span>Section A — Answer ALL questions</span><span class="sec-m">25 marks</span></div>`;
+  // Assign structures ensuring variety: at least 1 diagram, 1 calculation, 2 written explain
+  const qDefs = [
+    { n:1, parts: qStructures[0]  },  // (a)4written (b)1MCQ — most common
+    { n:2, parts: qStructures[4]  },  // (a)2calc (b)2written (c)1MCQ
+    { n:3, parts: qStructures[3]  },  // (a)4diagram (b)1MCQ
+    { n:4, parts: qStructures[8]  },  // (a)2calc (b)2calc (c)1MCQ
+    { n:5, parts: qStructures[1]  },  // (a)1MCQ (b)4written
+  ];
+
+  // Parse all question blocks from raw AI text
+  function getQBlock(raw, n) {
+    const lines = raw.split('\n');
+    let start = -1, end = lines.length;
+    for (let i = 0; i < lines.length; i++) {
+      const s = lines[i].replace(/[*_#]/g,'').trim();
+      if (start === -1 && (s.startsWith('Question ' + n) || s === 'Q' + n)) { start = i + 1; }
+      else if (start !== -1 && (/^\s*[*_#]*\s*Question\s*\d/.test(lines[i]) || /^\s*Section\s+[ABC]/i.test(lines[i]))) { end = i; break; }
+    }
+    return start !== -1 ? lines.slice(start, end).join('\n') : '';
+  }
+
+  function getFigure(block) {
+    // Extract any embedded figure or data table from the question block
+    const figMatch = block.match(/Figure\s*\d[\s\S]*?(?=\(a\)|$)/i)
+                  || block.match(/Table\s*\d[\s\S]*?(?=\(a\)|$)/i)
+                  || block.match(/(?:The following|The table|Data|Extract)[^\n]*:[\s\S]*?(?=\(a\)|$)/i);
+    return figMatch ? figMatch[0].trim() : '';
+  }
+
+  function getIntro(block) {
+    // Get question intro text (before any figure or sub-parts)
+    const lines = block.split('\n');
+    const intro = [];
+    for (const l of lines) {
+      if (/^\s*[*_]*\(a\)/.test(l) || /^Figure\s*\d/i.test(l.trim()) || /^Table\s*\d/i.test(l.trim())) break;
+      if (l.trim()) intro.push(l.trim());
+    }
+    return intro.join(' ').replace(/^Question\s*\d+\s*/i,'').replace(/[*_#]/g,'').trim();
+  }
+
+  let html = '<div class="sec"><div class="sec-hdr"><span>Section A — Answer ALL questions</span><span class="sec-m">25 marks</span></div>'
+           + '<p style="font-family:var(--font-ui);font-size:12px;color:var(--muted);margin-bottom:1.5rem;">Each question in this section has its own data. Answer all questions.</p>';
+
   qDefs.forEach(qd => {
-    const ps = extractParts(raw, qd.n);
-    html += `<div class="qg"><div class="qs">Question ${qd.n}</div>`;
+    const block = getQBlock(raw, qd.n);
+    const intro = getIntro(block);
+    const figure = getFigure(block);
+    const ps = extractParts(block, qd.n);
+
+    html += '<div class="qg">';
+    html += '<div class="qs">Question ' + qd.n + (intro ? ' — ' + e(intro) : '') + '</div>';
+
+    // Render embedded figure if present
+    if (figure) {
+      html += '<div class="sa-figure">' + mdToHtml(figure) + '</div>';
+    }
+
     qd.parts.forEach(p => {
-      const txt = ps[p.l] || `[${p.m}-mark question]`;
-      html += `<div class="qi">
-        <div class="ql">
-          <div class="qt"><span class="qlbl">(${p.l})</span>${e(cleanPart(txt,p.l))}</div>
-          <div class="qm">(${p.m})</div>
-        </div>
-        ${alines(p.m)}
-      </div>`;
+      const txt = ps[p.l] || '[' + p.m + '-mark question]';
+      const cleaned = cleanPart(txt, p.l);
+      // Detect MCQ (cross in box) style — 1-mark questions asking to identify/state from options A-D
+      const isMCQ = p.type === 'mcq' || (p.m === 1 && /which one|correct answer/i.test(cleaned));
+      const isDiagram = p.type === 'diagram';
+      const isCalc = p.type === 'calculate';
+      html += '<div class="qi">';
+      html += '<div class="ql"><div class="qt"><span class="qlbl">(' + p.l + ')</span>' + e(cleaned) + '</div><div class="qm">(' + p.m + ')</div></div>';
+      if (isMCQ) {
+        html += '<div class="mcq-boxes">' +
+          '<div class="mcq-opt"><span class="mcq-box"></span> A</div>' +
+          '<div class="mcq-opt"><span class="mcq-box"></span> B</div>' +
+          '<div class="mcq-opt"><span class="mcq-box"></span> C</div>' +
+          '<div class="mcq-opt"><span class="mcq-box"></span> D</div>' +
+          '</div>';
+      } else if (isDiagram) {
+        html += '<div class="diagram-space"></div>';
+        html += alines(2);
+      } else if (isCalc) {
+        html += alines(p.m + 1);
+      } else {
+        html += alines(p.m);
+      }
+      html += '</div>';
     });
     html += '</div>';
   });
+
   return html + '</div>';
 }
 
 // ── PAPERS 1 & 2 Section B ────────────────────────────────────────────────────
 // One question (Q6) with parts (a)5 (b)8 (c)12 (d)10 (e)15
 function renderP12SectionB(raw, extracts) {
-  const defs = [{l:'a',m:5},{l:'b',m:8},{l:'c',m:12},{l:'d',m:10},{l:'e',m:15}];
+  // Verified across all 8 papers (2021-2024):
+  // Standard order (2021 P1&P2, 2022 P1&P2, 2024 P1&P2): 5, 8, 10, 12, 15
+  // Occasional variation (2023 P1): 5, 10, 8, 12, 15 | (2023 P2): 5, 8, 12, 10, 15
+  // Default to most common order: 5, 8, 10, 12, 15
+  const defs = [{l:'a',m:5},{l:'b',m:8},{l:'c',m:10},{l:'d',m:12},{l:'e',m:15}];
   const ps = extractParts(raw, 6);
-  let html = '<div class="sec"><div class="sec-hdr"><span>Section B — Answer ALL questions</span><span class="sec-m">50 marks</span></div>'
+  let html = '<div class="sec"><div class="sec-hdr"><span>Section B — Answer ALL questions in this section</span><span class="sec-m">50 marks</span></div>'
+           + '<p style="font-family:var(--font-ui);font-size:12px;color:var(--muted);margin-bottom:1rem;">Read the following extracts before answering Question 6. You are advised to spend 1 hour on this section.</p>'
            + '<div class="extracts-wrapper">' + extracts + '</div>'
            + '<div class="qg"><div class="qs">Question 6</div>';
   defs.forEach(function(d) {
@@ -715,39 +817,179 @@ Then offer TWO choices — student answers ONE:
   (e) 25 marks — "To what extent [alternative macroeconomic policy/theory statement]."
 
 DO NOT write a Section C.` : `
-SECTION A (25 marks total) — five questions, each exactly 5 marks:
-  Question 1: (a) 1 mark [Identify/State] + (b) 1 mark [Identify/State] + (c) 3 marks [Calculate — show working]
-  Question 2: (a) 2 marks [Explain one] + (b) 3 marks [Explain one, using a diagram]
-  Question 3: (a) 2 marks [Explain one] + (b) 3 marks [Explain, using a diagram]
-  Question 4: (a) 4 marks [Examine, with reference to data] + (b) 1 mark [Identify/State]
-  Question 5: (a) 4 marks [Examine, with reference to data] + (b) 1 mark [Identify/State]
+SECTION A (25 marks total) — five standalone questions, each with their OWN embedded figure or data.
+CRITICAL: Section A questions must NOT reference Extract A, B or C. Each question includes its own small dataset or figure.
+Each question tests a different microeconomic or macroeconomic concept with a short data item embedded in the question.
 
-SECTION B (50 marks total) — one question (Question 6):
-  (a) 5 marks  — "Explain, using a diagram, [concept]."
-  (b) 8 marks  — "Examine [issue], with reference to the data."
-  (c) 12 marks — "Assess the view that [statement]."
-  (d) 10 marks — "Evaluate the likely impact of [policy/change] on [stakeholders]."
-  (e) 15 marks — "Evaluate the extent to which [policy/theory]."
+VERIFIED from official 2023 and 2024 Edexcel 9EC0/01 question papers.
+Each question has its own self-contained stem with a source citation. Questions do NOT reference Extracts A/B/C.
 
-SECTION C (25 marks total) — student answers ONE:
-  Question 7: 25 marks — "Evaluate the view that [economic statement]."
-  Question 8: 25 marks — "To what extent [alternative economic statement]."`;
+  Question 1 (5 marks): Short news-style stem (2-3 sentences) with source citation.
+    (a) 4 marks — "With reference to the information provided, explain one [advantage/reason/concept]."
+                   Written answer. Chain of reasoning required. KAA 3 marks + application 1 mark.
+                   Example: "With reference to the information provided, explain one advantage of a free market economy."
+    (b) 1 mark  — "Which one of the following [economic thinker/concept/outcome]?"
+                   MCQ with options A, B, C, D on separate lines.
+
+  Question 2 (5 marks): Diagram or data table (e.g. PPF, supply/demand, elasticity data).
+    (a) 2 marks — "Calculate [value]. Show your working." OR "Explain [concept shown in diagram]."
+                   Short written/calculation answer applying directly to the figure.
+    (b) 2 marks — "Explain [impact/outcome] of [scenario shown in diagram]."
+                   Short written answer with economic reasoning.
+    (c) 1 mark  — "Which one of the following [outcome/interpretation of diagram]?"
+                   MCQ with options A, B, C, D.
+
+  Question 3 (5 marks): Short scenario stem (1-2 sentences) introducing a market or economic concept.
+    (a) 1 mark  — "The likely [elasticity value/characteristic] of [good/market] is:" followed by MCQ A B C D.
+                   OR: "Which one of the following is [most likely/correct]?" MCQ.
+    (b) 4 marks — "Draw [a diagram showing profit maximisation/market equilibrium/specific economic model]."
+                   Diagram question. Label marks given for correctly drawn and labelled diagram elements.
+                   Example: "Draw the short run profit maximising equilibrium of a loss-making [firm type]."
+
+  Question 4 (5 marks): Numerical data with source (e.g. price change, index, market data).
+    (a) 2 marks — "With reference to the information provided, calculate [percentage change/value]. Show your working."
+                   Calculation with working shown. 1 mark method + 1 mark correct answer.
+    (b) 2 marks — "Explain the likely impact of [change] on [economic concept e.g. consumer surplus]."
+                   Short written answer.
+    (c) 1 mark  — Diagram-based MCQ: show a labelled diagram in the question, ask "Which [area/point] represents [concept]?"
+                   Options A B C D each referring to areas/points on the diagram.
+
+  Question 5 (5 marks): Index, chart or market share data with source citation.
+    (a) 1 mark  — "Which one of the following is [the ratio/value/outcome]?" MCQ A B C D using the data.
+    (b) 4 marks — "Using the information provided and the concept of [economic theory], explain [outcome]."
+                   Extended written answer. KAA 3 marks + application 1 mark referencing the data.
+                   Example: "Using the information provided and the concept of monopsony, explain why [workers] have had lower wage rises."
+
+Each Section A question MUST have its own self-contained data: a short stem with a figure/table/chart/diagram, and a source citation.
+CRITICAL: Every question (1-5) must have exactly ONE sub-part worth 1 mark that is a multiple-choice question (MCQ) with options A, B, C, D on separate lines.
+The MCQ can appear as part (a), (b), or (c) — it varies between questions.
+The remaining 4 marks per question are split between written answer, calculation, or diagram sub-parts.
+
+Allowed sub-part structures (ALL verified from 8 official papers 2021-2024, vary these across Q1-Q5):
+- (a) 4 marks written + (b) 1 mark MCQ                           [most common: 2023P1Q1, 2024P1Q1,Q4,Q5]
+- (a) 1 mark MCQ + (b) 4 marks written                           [2023P1Q5, 2021P1Q1, 2023P2Q2]
+- (a) 4 marks diagram + (b) 1 mark MCQ                           [2022P1Q3,Q4, 2024P1Q3, 2021P1Q5]
+- (a) 1 mark MCQ + (b) 4 marks diagram                           [2022P1Q1, 2023P1Q3]
+- (a) 4 marks calculate + (b) 1 mark MCQ                         [2022P2Q1]
+- (a) 1 mark MCQ + (b) 4 marks calculate                         [2024P2Q4]
+- (a) 2 marks calculate + (b) 2 marks written + (c) 1 mark MCQ  [2023P1Q2]
+- (a) 2 marks written + (b) 2 marks written + (c) 1 mark MCQ    [2023P1Q4, 2022P1Q5]
+- (a) 2 marks calculate + (b) 2 marks calculate + (c) 1 mark MCQ [2022P1Q2, 2021P1Q4]
+- (a) 1 mark MCQ + (b) 2 marks calculate + (c) 2 marks written  [2024P2Q1, 2021P2Q1]
+- (a) 1 mark MCQ + (b) 2 marks written + (c) 2 marks written    [2021P2Q2]
+
+IMPORTANT rules from real papers:
+- Some questions specify a NAMED diagram type: "Draw a supply and demand diagram", "Draw an externalities diagram", "Draw a cost and revenue diagram", "Draw an AD/AS diagram", "Complete the price discrimination diagram"
+- Calculation questions always say "You are advised to show your working" or "Calculate... Show your working"
+- Written 4-mark questions usually say "With reference to the information provided, explain one [reason/impact/likely effect]"
+- MCQ options are listed as A B C D each on a separate line, sometimes with a two-column table format
+
+Ensure variety across Q1-Q5: include at least one diagram question, at least one calculation, and at least two written explain questions.
+Do NOT use "Assess", "Evaluate" or "Discuss" in Section A.
+Allowed command words: "Explain one", "With reference to the information provided, explain", "Calculate", "Draw", "Which one of the following".
+
+SECTION B (50 marks total) — one question (Question 6). Total must be exactly 50 marks.
+The five parts are always worth 5, 8, 10, 12 and 15 marks.
+VERIFIED STANDARD ORDER across all 8 papers (2021-2024): (a)5 (b)8 (c)10 (d)12 (e)15.
+Used in: 2021 P1&P2, 2022 P1&P2, 2024 P1&P2 (6 out of 8 papers).
+Occasional variation: 2023 P1 used 5,10,8,12,15 | 2023 P2 used 5,8,12,10,15.
+USE THE STANDARD ORDER: (a)5 (b)8 (c)10 (d)12 (e)15.
+
+COMMAND WORDS by mark value (verified from ALL 8 official papers 2021-2024):
+
+  (a) 5 marks — "Explain" — KAA only. Often requires a named diagram. Always references a specific extract or figure.
+    Real examples: "With reference to Figure 1, explain the market structure..." | "Using a Lorenz curve diagram, explain how income inequality is measured. Refer to Extract A." | "Explain the likely impact of diminishing marginal productivity of labour on cabin crew staffing levels. Refer to Extract A."
+    NOTE: Sometimes specifies a named diagram type (Lorenz curve, supply & demand, externalities, AD/AS).
+
+  (b) 8 marks — "Examine" — KAA + some evaluation, points-based. Must reference named extract/figure.
+    Real examples: "Examine two factors which might influence the supply of labour in the electronics industry." | "With reference to Figure 2 and your understanding of price elasticity, examine two factors that may cause significant changes in the international price of coffee beans." | "Examine the likely impact of Thomas Cook's plan to reduce their airline emissions on the social optimum position. Use an appropriate externalities diagram in your answer."
+    NOTE: "Examine two [factors/causes/benefits]" is the most common phrasing. Sometimes asks for a specific diagram.
+
+  (c) 10 marks — "Assess" — KAA + evaluation, levels-based. Must reference named extracts.
+    Real examples: "With reference to the information provided, assess whether Netflix subscribers behave rationally." | "With reference to Extract A, assess whether this is the case for coffee shop owners." | "With reference to Extract C, assess whether Thomas Cook's failure was caused by the principal-agent problem."
+    NOTE: "Assess whether..." is the most common phrasing. Always references a specific extract or figure.
+
+  (d) 12 marks — "Discuss" — balanced KAA + evaluation, levels-based. Must reference named extract.
+    Real examples: "With reference to Extract C, discuss the likely private and external benefits of viewing educational websites and TV programmes." | "Using a cost and revenue diagram, discuss the likely impact of 'rising costs' for coffee shops on their profitability." | "With reference to Extract C and your own knowledge, discuss methods the UK government could use to increase tax revenue."
+    NOTE: "Discuss" is the command word. Often asks for a specific named diagram type.
+
+  (e) 15 marks — "Discuss" — full two-sided evaluation, diagram ALWAYS required, justified conclusion.
+    Real examples: "Using examples from Figure 2 or Extract B, discuss the likely impact of price discrimination on a firm's profits. Use a relevant diagram to support your answer." | "With reference to the information provided, discuss whether the coffee shop market is contestable." | "With reference to Extract B, discuss the benefits of an increase in infrastructure spending on the UK economy. Use an aggregate demand and aggregate supply diagram to support your answer."
+    NOTE: Always "Discuss". Always references extracts/figures. Usually says "Use a relevant diagram" or names a specific diagram type.
+
+ALL five parts must reference the extracts and figures by name (e.g. "With reference to Extract A", "Using Figure 2", "Refer to Extract B in your answer").
+Section B uses Figures AND written Extracts — include both types in stimulus material.
+The 15-mark question must explicitly say "Use a relevant diagram to support your answer."
+
+SECTION C (25 marks total) — student answers ONE essay from Q7 or Q8.
+CRITICAL: Section C essays are COMPLETELY INDEPENDENT of the Section B extracts and case study.
+Verified from real papers: 2023 P1 Section B was about streaming services — Section C essays were about energy bills (Q7) and market contestability (Q8). Completely different topics.
+
+SECTION C FORMAT (verified from actual papers):
+  - A short introductory sentence or stem sets real-world context for each essay
+  - The question follows on the same or next line
+  - Mark the essay number and ask the candidate to indicate which they are answering with a cross in a box
+  - Both questions are always worth 25 marks each
+  - AO breakdown: 16 marks KAA + 9 marks evaluation = 25 marks total
+  - Command words vary: "Evaluate the view that", "To what extent", "Assess the case for"
+  - A justified conclusion is always required
+
+  Question 7: 25 marks
+    - Short real-world context stem (1-2 sentences), then:
+    - "Evaluate the view that [microeconomic or macroeconomic statement relevant to Paper theme]." (25)
+    - OR "To what extent [statement]." (25)
+
+  Question 8: 25 marks  
+    - Short real-world context stem on a COMPLETELY DIFFERENT topic from Q7, then:
+    - "Evaluate the view that [different microeconomic or macroeconomic statement]." (25)
+    - OR "Assess the case for [policy or intervention]." (25)
+
+VERIFIED Section C question format from ALL 8 papers (2021-2024):
+
+  CRITICAL: Command word is ALWAYS "Evaluate" — never "To what extent" or "Assess the case for".
+  Format: Short real-world intro stem (1-3 sentences with source citation in brackets) then on a new line: "Evaluate [statement]."
+  Candidates indicate chosen question with a cross in a box.
+
+  Real Section C questions from past papers:
+  - 2022 P1 Q7: "Tesla held an 82% market share of the electric vehicle market in the United States during the first half of 2020. [source] Evaluate whether a monopoly is likely to operate efficiently. Refer to at least one monopoly of your choice."
+  - 2022 P1 Q8: "Some occupations in the UK are facing large labour shortages. Hard-to-fill vacancies include qualified chefs, software engineers, construction workers and qualified nurses. [source] Evaluate the factors that might influence the supply of labour in an occupation of your choice."
+  - 2021 P1 Q7: "[National living wage context] Evaluate the disadvantages of a significant increase in the national living wage on a specific labour market, such as that for social care workers."
+  - 2021 P1 Q8: "[Market concentration context] Evaluate the possible consequences for business decision making of increased market concentration. Refer to industries of your choice in your answer."
+  - 2022 P2 Q7: "[China-US trade dispute context] Evaluate the likely impact of an increase in protectionism on the global economy."
+  - 2022 P2 Q8: "[Globalisation context] Evaluate the likely impact of globalisation on the global economy."
+
+  STYLE RULES:
+  - Intro stem is 1-3 sentences of real-world context with a source citation
+  - Essay question always starts on a new line after the stem, beginning with "Evaluate"
+  - Command word is ALWAYS "Evaluate" — this is consistent across all 8 papers
+  - Questions often end with "Refer to [industry/country] of your choice" or "Use a diagram to support your answer"
+  - Topics are COMPLETELY UNRELATED to Section B case study
+
+Do NOT base either essay on the Section B case study topic.`;
 
   const sys = `You are a senior Edexcel A Level Economics A (9EC0) principal examiner.
 
 OUTPUT FORMAT — use these EXACT section headings:
 EXTRACTS
+[Include a mix of Figures (with numerical data/charts) AND written Extracts, as seen in real papers]
+[Verified: 2023 P1 had Figure 1 + Figure 2 + Extracts A,B,C | 2023 P2 had Figure 1 + Extracts A,B | 2024 P2 had Figures 1-4 + Extracts A,B]
+[Use this format — choose an appropriate number of figures and extracts for your topic:]
+
+Figure 1: [Title with data context]
+[Data table or chart description with specific UK/global numerical data — percentages, £ figures, index numbers, time series]
+(Source: [Realistic ONS/Bank of England/government/FT source])
+
+Figure 2: [Title]
+[Second data table or chart with different angle on the topic]
+(Source: [Source])
+
 Extract A: [Title]
-[~150-word passage, realistic newspaper/report style]
-(Source: [Realistic source name, year])
+[~150-200 word passage, realistic newspaper/report style, numbered lines on right margin]
+(Source: [Realistic source])
 
-Extract B: [Title]  
-[~150-word passage with specific numerical data: %, £ figures, index numbers, tables]
-(Source: [source])
-
-Extract C: [Title]
-[~150-word passage — third perspective, data or policy angle]
-(Source: [source])
+Extract B: [Title]
+[~150-200 word passage — policy angle or additional context]
+(Source: [Source])
 
 SECTION A
 [questions]
@@ -757,20 +999,29 @@ SECTION B
 
 ${pk !== 'p3' ? 'SECTION C\n[questions]' : ''}
 
-COMMAND WORDS by mark:
-1 mark: Identify / State
-2 marks: Explain one
-3 marks: Calculate (show working) / Explain with diagram reference
-4 marks: Examine
-5 marks: Explain using a diagram (must reference diagram)
-8 marks: Examine [with reference to data/extract]
-10 marks: Evaluate [two-sided]
-12 marks: Assess the view that / Discuss [KAA + evaluation]
-15 marks: Evaluate the extent to which [full two-sided + conclusion]
-25 marks: Evaluate / To what extent [full essay]
+COMMAND WORDS by mark (Edexcel Economics A 9EC0 verified):
+1 mark: Identify / State / Which one of the following (MCQ)
+2 marks: Explain one / Calculate
+3 marks: Calculate, show working / Explain using a diagram reference
+4 marks: Explain one reason [with application to data] / Draw and explain a diagram
+5 marks: Explain, using a diagram [diagram + explanation chain, KAA only]
+8 marks: Examine [with reference to data, KAA + some evaluation, MUST reference extracts]
+10 marks: Assess [whether/how — KAA + evaluation, levels-based, MUST reference named extracts]
+12 marks: Discuss the likely [private/external benefits, impacts — balanced KAA + EV, MUST apply to named extract]
+15 marks: Discuss the likely impact of [concept] on [stakeholders] — diagram explicitly required, full two-sided evaluation, justified conclusion, MUST reference extracts
+25 marks (Section C essays):
+  - Short one-sentence context stem introducing a real-world scenario
+  - Then: "Evaluate the view that [statement]." OR "To what extent [statement]."
+  - AO breakdown: 16 marks KAA (knowledge, application, analysis) + 9 marks evaluation
+  - Must be on a DIFFERENT topic to Section B — completely standalone
+  - Two well-developed KAA paragraphs, each evaluated separately, plus justified conclusion
+  - Diagrams are expected and should be referenced in the question stem if appropriate
 
-All Section A and B questions must reference extracts (e.g. "with reference to Extract B", "using Figure 1 from Extract A").
-For questions worth 10+ marks add: "In your answer you may be awarded marks for the quality of your written communication."
+CRITICAL — Extract referencing rules:
+- Section A questions each have their OWN embedded figure/data — they do NOT reference Extracts A/B/C
+- ALL Section B questions (6a through 6e) MUST explicitly tell candidates to use the extracts
+- Use phrases like "With reference to Extract A", "Using the data in Extract B", "With reference to the extracts"
+- Examiner reports confirm candidates lose application marks if not directed to the extracts
 ${ms === 'yes' ? 'After completing the full paper, append a clearly labelled MARK SCHEME section with AO1/AO2/AO3/AO4 breakdown and indicative content for each question.' : ''}`;
 
   const user = `Generate a complete Edexcel A Level Economics A ${s.label} (${s.code}).
@@ -791,7 +1042,10 @@ IMPORTANT FORMATTING RULES:
 - Write question text as plain sentences only
 - Tables are allowed in extracts only — use standard markdown table format with | separators and a |---|---| separator row
 - Do NOT add "In your answer you may be awarded marks for the quality of your written communication" — this does not appear in Edexcel Economics A papers
-- Section C must contain exactly TWO essay questions: Question 7 and Question 8, each clearly labelled on their own line`;
+- Section C must contain exactly TWO essay questions: Question 7 and Question 8, each clearly labelled on their own line
+- Each Section C essay must start with a short one-sentence context stem, then the question on a new line
+- Section C essays must be on COMPLETELY DIFFERENT topics to Section B — never reference Extract A/B/C/D
+- Both Section C essays need a justified conclusion — make this clear in how the question is phrased`;
 
   try {
     const body = { model:'claude-sonnet-4-6', max_tokens:4000, system:sys, messages:[{role:'user',content:user}] };
