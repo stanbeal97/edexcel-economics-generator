@@ -93,6 +93,13 @@
   .ext-body { font-size: 13px; line-height: 1.75; white-space: pre-wrap; }
   .ext-src { font-size: 11px; color: var(--muted); font-style: italic; margin-top: 10px; text-align: right; }
   .extracts-wrapper { margin-bottom: 1.5rem; }
+  .diagram-desc { background: #f0f4ff; border: 1px dashed #8899cc; border-radius: 4px; padding: 8px 12px; margin: 8px 0 4px; font-family: var(--font-ui); font-size: 11px; color: #445; font-style: italic; }
+  .diagram-desc::before { content: "Diagram: "; font-weight: 600; font-style: normal; }
+  .essay-stem { font-size: 13px; line-height: 1.7; color: var(--text); margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid var(--border); font-family: var(--font-body); }
+  .essay-q { font-size: 14px; font-weight: 500; }
+  .mcq-boxes { display: flex; flex-direction: column; gap: 6px; padding: 10px 0 6px 4px; font-family: var(--font-ui); font-size: 13px; }
+  .mcq-opt { display: flex; align-items: center; gap: 10px; }
+  .mcq-box { width: 16px; height: 16px; border: 1.5px solid var(--text); display: inline-block; flex-shrink: 0; }
   .sa-figure { background: #f7f7f5; border: 1px solid var(--border); border-radius: 4px; padding: 10px 14px; margin: 8px 0 12px; font-size: 12px; font-family: var(--font-ui); }
   .diagram-space { border: 1px solid var(--border); height: 180px; margin: 8px 0 4px; background: #fafafa; display: flex; align-items: center; justify-content: center; color: var(--muted); font-family: var(--font-ui); font-size: 12px; font-style: italic; }
   .diagram-space::after { content: 'Space for diagram'; }
@@ -589,11 +596,15 @@ function renderP12SectionA(raw) {
   }
 
   function getFigure(block) {
-    // Extract any embedded figure or data table from the question block
+    // Match named figures/tables, or any block containing a markdown pipe table
     const figMatch = block.match(/Figure\s*\d[\s\S]*?(?=\(a\)|$)/i)
                   || block.match(/Table\s*\d[\s\S]*?(?=\(a\)|$)/i)
                   || block.match(/(?:The following|The table|Data|Extract)[^\n]*:[\s\S]*?(?=\(a\)|$)/i);
-    return figMatch ? figMatch[0].trim() : '';
+    if (figMatch) return figMatch[0].trim();
+    // Also catch any lines containing a markdown pipe table before the first sub-part
+    const beforeParts = block.split(/\n\s*\([a-e]\)/)[0];
+    if (beforeParts && (beforeParts.match(/\|/g)||[]).length >= 3) return beforeParts.trim();
+    return '';
   }
 
   function getIntro(block) {
@@ -631,15 +642,38 @@ function renderP12SectionA(raw) {
       const isMCQ = p.type === 'mcq' || (p.m === 1 && /which one|correct answer/i.test(cleaned));
       const isDiagram = p.type === 'diagram';
       const isCalc = p.type === 'calculate';
-      html += '<div class="qi">';
-      html += '<div class="ql"><div class="qt"><span class="qlbl">(' + p.l + ')</span>' + e(cleaned) + '</div><div class="qm">(' + p.m + ')</div></div>';
+      // Strip any [Diagram: ...] description from question text
+      const diagDescMatch = cleaned.match(/\[Diagram[:\s][^\]]*\]/i) || cleaned.match(/\[The diagram[^\]]*\]/i);
+      const hasDiagDesc = !!diagDescMatch;
+      const cleanedNoDiag = hasDiagDesc ? cleaned.replace(diagDescMatch[0], '').trim() : cleaned;
+
+      // Parse MCQ options embedded inline in question text (A ... B ... C ... D ...)
+      let questionText = cleanedNoDiag;
+      let embeddedOptions = null;
       if (isMCQ) {
-        html += '<div class="mcq-boxes">' +
-          '<div class="mcq-opt"><span class="mcq-box"></span> A</div>' +
-          '<div class="mcq-opt"><span class="mcq-box"></span> B</div>' +
-          '<div class="mcq-opt"><span class="mcq-box"></span> C</div>' +
-          '<div class="mcq-opt"><span class="mcq-box"></span> D</div>' +
-          '</div>';
+        const optMatch = cleaned.match(/([^\n]+)\n\s*A\s+(.+?)\n\s*B\s+(.+?)\n\s*C\s+(.+?)\n\s*D\s+(.+)/s)
+                      || cleaned.match(/(.+?)\s{2,}A\s+(.+?)\s{2,}B\s+(.+?)\s{2,}C\s+(.+?)\s{2,}D\s+(.+)/s);
+        if (optMatch) {
+          questionText = optMatch[1].trim();
+          embeddedOptions = [optMatch[2].trim(), optMatch[3].trim(), optMatch[4].trim(), optMatch[5].trim()];
+        }
+      }
+
+      html += '<div class="qi">';
+      html += '<div class="ql"><div class="qt"><span class="qlbl">(' + p.l + ')</span>' + e(questionText) + '</div><div class="qm">(' + p.m + ')</div></div>';
+
+      if (hasDiagDesc) {
+        html += '<div class="diagram-desc">' + e(diagDescMatch[0].replace(/^\[|\]$/g,'')) + '</div>';
+        html += '<div class="diagram-space"></div>';
+        html += alines(2);
+      } else if (isMCQ) {
+        const opts = embeddedOptions || ['A', 'B', 'C', 'D'];
+        html += '<div class="mcq-boxes">';
+        opts.forEach((opt, i) => {
+          const letter = String.fromCharCode(65 + i);
+          html += '<div class="mcq-opt"><span class="mcq-box"></span>&nbsp;' + letter + (embeddedOptions ? '&nbsp;&nbsp;' + e(opt) : '') + '</div>';
+        });
+        html += '</div>';
       } else if (isDiagram) {
         html += '<div class="diagram-space"></div>';
         html += alines(2);
@@ -706,7 +740,33 @@ function renderP12SectionC(raw) {
     fb7 = fb7 || cleanEssay(parts[0] || '');
     fb8 = fb8 || cleanEssay(parts[1] || '');
   }
-  return '<div class="sec"><div class="sec-hdr"><span>Section C — Answer ONE question from this section</span><span class="sec-m">25 marks</span></div><div class="choice-box">Answer ONE question from Questions 7 and 8.</div><div class="qg"><div class="qs">Question 7</div><div class="qi"><div class="ql"><div class="qt">' + e(fb7 || '[Evaluate the view that...] (25 marks)') + '</div><div class="qm">(25)</div></div>' + alines(25) + '</div></div><div class="qg"><div class="qs">Question 8</div><div class="qi"><div class="ql"><div class="qt">' + e(fb8 || '[To what extent...] (25 marks)') + '</div><div class="qm">(25)</div></div>' + alines(25) + '</div></div></div>';
+  // Split each essay into stem (context) and question
+  function splitEssayParts(text) {
+    if (!text) return { stem: '', question: text || '' };
+    // The stem is the intro sentences before the "Evaluate..." command
+    const evalIdx = text.search(/Evaluate\b/i);
+    if (evalIdx > 10) {
+      return { stem: text.slice(0, evalIdx).trim(), question: text.slice(evalIdx).trim() };
+    }
+    return { stem: '', question: text };
+  }
+  const e7 = splitEssayParts(fb7 || 'Evaluate the view that...');
+  const e8 = splitEssayParts(fb8 || 'Evaluate the view that...');
+
+  function renderEssayQ(num, parts) {
+    return '<div class="qg">' +
+      '<div class="qs">Question ' + num + '</div>' +
+      (parts.stem ? '<div class="essay-stem">' + e(parts.stem) + '</div>' : '') +
+      '<div class="qi"><div class="ql"><div class="qt essay-q">' + e(parts.question) + '</div><div class="qm">(25)</div></div>' + alines(25) + '</div>' +
+      '<div class="tick-row" style="margin-top:8px;">' +
+      '<div class="tick-opt"><div class="tick-box"></div> I am answering Question ' + num + '</div>' +
+      '</div>' +
+      '</div>';
+  }
+
+  return '<div class="sec"><div class="sec-hdr"><span>Section C — Answer ONE question from this section</span><span class="sec-m">25 marks</span></div>' +
+    '<div class="choice-box">Answer ONE question from Questions 7 and 8. You are advised to spend 30 minutes on this section.</div>' +
+    renderEssayQ(7, e7) + renderEssayQ(8, e8) + '</div>';
 }
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
@@ -1024,28 +1084,40 @@ CRITICAL — Extract referencing rules:
 - Examiner reports confirm candidates lose application marks if not directed to the extracts
 ${ms === 'yes' ? 'After completing the full paper, append a clearly labelled MARK SCHEME section with AO1/AO2/AO3/AO4 breakdown and indicative content for each question.' : ''}`;
 
-  const user = `Generate a complete Edexcel A Level Economics A ${s.label} (${s.code}).
+  // Build case study instruction outside template literal to avoid backtick nesting
+  let caseInstruction;
+  if (case_ === 'current') {
+    caseInstruction = 'CURRENT UK ECONOMY: Search the web for a genuine, newsworthy UK or global economic story from 2024-2025. Pick something actively in the news right now — a real company, industry, policy or market. Use real data from ONS, Bank of England, or credible news sources. The case study should feel like it was ripped from today\'s Financial Times or BBC News. Prioritise topics with rich quantitative data (prices, market shares, GDP figures, unemployment rates).';
+  } else if (case_ === 'predictive') {
+    caseInstruction = 'PREDICTIVE CASE STUDY: Your task is to predict what Edexcel are LIKELY to set in a future exam paper. Follow these steps:\n\nStep 1: Search the web for recent Edexcel Economics A examiner reports and subject updates to understand which topics have appeared recently (2021-2024) and which the examiners have flagged.\n\nStep 2: Choose a topic based on these criteria:\n- Topics NOT used as a Section B case study in papers from 2021-2024 are more likely to appear\n- Long-running unresolved UK policy issues (e.g. housing supply crisis, NHS funding, green energy transition, AI and the labour market, wealth inequality, water industry regulation, gig economy)\n- The topic must suit the paper: Paper 1 needs a microeconomic market context; Paper 2 needs a macroeconomic or global context\n- Choose a topic with good quantitative data available (market shares, price indices, GDP figures, wage data)\n- Choose a topic with multiple stakeholders (firms, consumers, government, workers) to enable rich questions\n\nStep 3: Search for current news and data on your chosen topic to ensure extracts contain realistic up-to-date figures.\n\nStep 4: Before writing EXTRACTS, write one short paragraph explaining which topic you chose and why you think it is likely to appear in a future Edexcel paper.';
+  } else {
+    caseInstruction = 'CLASSIC EDEXCEL STYLE: Invent a plausible UK or global economic context in the style of past papers, with realistic data. Do not use web search.';
+  }
 
-Topic: ${topic === 'any' ? `Mixed across ${s.themes}` : topic.replace(/_/g,' ')}
-Case study: ${case_==='current'?'Use a genuine current (2024-2025) UK or global economic context found via web search':case_==='predictive'?'Use a context likely to feature in upcoming papers — based on current policy debates and ONS/Bank of England data':'Classic realistic Edexcel-style scenario'}
-Difficulty: ${diff}
-${extra ? 'Teacher instructions: '+extra : ''}
+  const topicText = topic === 'any' ? 'Mixed across ' + s.themes : topic.replace(/_/g,' ');
 
-EXACT STRUCTURE:
-${structPrompt}
+  const formattingRules = [
+    'Begin immediately with EXTRACTS. No preamble.',
+    'IMPORTANT FORMATTING RULES:',
+    '- Do NOT use markdown formatting (no **, no *, no _) anywhere in question text\n- Do NOT write [Diagram: ...] descriptions. Simply write Draw a supply and demand diagram or Use a diagram in your answer in the question text. The student draws it in their booklet',
+    '- Do NOT use --- dividers between questions',
+    '- Write each sub-part on its own line starting exactly with (a), (b), (c) etc. with no other characters before it',
+    '- Write question text as plain sentences only',
+    '- Tables are allowed in extracts only — use standard markdown table format with | separators and a |---|---| separator row',
+    '- Do NOT add "In your answer you may be awarded marks for the quality of your written communication" — this does not appear in Edexcel Economics A papers',
+    '- Section C must contain exactly TWO essay questions: Question 7 and Question 8, each clearly labelled on their own line',
+    '- Each Section C essay must start with a short one-sentence context stem, then the question on a new line',
+    '- Section C essays must be on COMPLETELY DIFFERENT topics to Section B — never reference Extract A/B/C/D',
+    '- Both Section C essays need a justified conclusion — make this clear in how the question is phrased'
+  ].join('\n');
 
-Begin immediately with EXTRACTS. No preamble.
-IMPORTANT FORMATTING RULES:
-- Do NOT use markdown formatting (no **, no *, no _) anywhere in question text
-- Do NOT use --- dividers between questions  
-- Write each sub-part on its own line starting exactly with (a), (b), (c) etc. with no other characters before it
-- Write question text as plain sentences only
-- Tables are allowed in extracts only — use standard markdown table format with | separators and a |---|---| separator row
-- Do NOT add "In your answer you may be awarded marks for the quality of your written communication" — this does not appear in Edexcel Economics A papers
-- Section C must contain exactly TWO essay questions: Question 7 and Question 8, each clearly labelled on their own line
-- Each Section C essay must start with a short one-sentence context stem, then the question on a new line
-- Section C essays must be on COMPLETELY DIFFERENT topics to Section B — never reference Extract A/B/C/D
-- Both Section C essays need a justified conclusion — make this clear in how the question is phrased`;
+  const user = 'Generate a complete Edexcel A Level Economics A ' + s.label + ' (' + s.code + ').\n\n' +
+    'Topic: ' + topicText + '\n' +
+    'Case study approach: ' + caseInstruction + '\n' +
+    'Difficulty: ' + diff + '\n' +
+    (extra ? 'Teacher instructions: ' + extra + '\n' : '') +
+    '\nEXACT STRUCTURE:\n' + structPrompt + '\n\n' +
+    formattingRules;
 
   try {
     const body = { model:'claude-sonnet-4-6', max_tokens:4000, system:sys, messages:[{role:'user',content:user}] };
