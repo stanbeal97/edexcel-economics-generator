@@ -92,6 +92,7 @@
   .ext-title { font-size: 15px; font-weight: bold; margin-bottom: 8px; }
   .ext-body { font-size: 13px; line-height: 1.75; white-space: pre-wrap; }
   .ext-src { font-size: 11px; color: var(--muted); font-style: italic; margin-top: 10px; text-align: right; }
+  .extracts-wrapper { margin-bottom: 1.5rem; }
   .md-table { border-collapse: collapse; width: 100%; margin: 8px 0; font-family: var(--font-ui); font-size: 12px; }
   .md-table th { background: var(--navy); color: white; padding: 6px 10px; text-align: left; font-weight: 600; }
   .md-table td { padding: 5px 10px; border-bottom: 1px solid var(--border); }
@@ -329,38 +330,44 @@ function alines(n) { return Array(Math.min(Math.max(Math.round(n*0.7),2),14)).fi
 // Convert markdown formatting to HTML (tables, bold, italic, lists)
 function mdToHtml(text) {
   if (!text) return '';
+  // Pre-process: normalise any line that looks like a table row even without leading |
   const lines = text.split('\n');
   let html = '';
   let i = 0;
   while (i < lines.length) {
     const line = lines[i];
-    // Markdown table: line has | and next line is |---|
-    if (line.includes('|') && i + 1 < lines.length && lines[i+1].match(/^\|[\s\-|:]+\|$/)) {
-      const headers = line.split('|').map(h=>h.trim()).filter(h=>h);
-      i += 2;
+    const trimmed = line.trim();
+    // Detect table: current line has | chars, next line is a separator (---|--- style)
+    const isSep = (l) => /^[\|\s\-:]+$/.test(l) && l.includes('-') && l.includes('|');
+    const hasBar = (l) => (l.match(/\|/g)||[]).length >= 1;
+    if (hasBar(trimmed) && i + 1 < lines.length && isSep(lines[i+1].trim())) {
+      // Parse headers
+      const headers = trimmed.replace(/^\|/,'').replace(/\|$/,'').split('|').map(h=>h.trim());
+      i += 2; // skip header and separator
       let t = '<table class="md-table"><thead><tr>';
       headers.forEach(h => { t += '<th>' + inlineMd(h) + '</th>'; });
       t += '</tr></thead><tbody>';
-      while (i < lines.length && lines[i].trim().startsWith('|')) {
-        const cells = lines[i].split('|').map(c=>c.trim()).filter(c=>c);
+      while (i < lines.length && hasBar(lines[i].trim())) {
+        const row = lines[i].trim().replace(/^\|/,'').replace(/\|$/,'');
+        const cells = row.split('|').map(c=>c.trim());
         t += '<tr>';
         cells.forEach(c => { t += '<td>' + inlineMd(c) + '</td>'; });
         t += '</tr>';
         i++;
       }
       html += t + '</tbody></table>';
-    } else if (line.match(/^[\*\-] /)) {
+    } else if (/^[*-] /.test(trimmed)) {
       let ul = '<ul class="md-list">';
-      while (i < lines.length && lines[i].match(/^[\*\-] /)) {
-        ul += '<li>' + inlineMd(lines[i].replace(/^[\*\-] /, '')) + '</li>';
+      while (i < lines.length && /^[*-] /.test(lines[i].trim())) {
+        ul += '<li>' + inlineMd(lines[i].trim().replace(/^[*-] /,'')) + '</li>';
         i++;
       }
       html += ul + '</ul>';
-    } else if (line.trim() === '') {
+    } else if (trimmed === '') {
       html += '<br>';
       i++;
     } else {
-      html += '<span>' + inlineMd(line) + '</span><br>';
+      html += '<span>' + inlineMd(trimmed) + '</span><br>';
       i++;
     }
   }
@@ -400,7 +407,7 @@ function renderPaper(text, pk) {
   } else {
     // PAPERS 1 & 2: Section A, B, C
     body = renderP12SectionA(saRaw)
-         + renderP12SectionB(sbRaw)
+         + renderP12SectionB(sbRaw, extracts)
          + renderP12SectionC(scRaw);
   }
 
@@ -432,10 +439,6 @@ function renderPaper(text, pk) {
           <li>You may use a calculator.</li>
           <li>Marks for each question are shown in brackets. Total: <strong>${s.total}</strong> marks.</li>
         </ul>
-      </div>
-      <div class="sec">
-        <div class="sec-hdr"><span>Stimulus Material — Read all extracts carefully before answering</span></div>
-        ${extracts}
       </div>
       ${body}
     </div>
@@ -493,7 +496,7 @@ function renderP3Section(letter, topic, marks, qNum, raw) {
         <div class="qt"><span class="qlbl">(${def.l})</span>${e(cleanPart(txt,def.l))}</div>
         <div class="qm">(${def.m})</div>
       </div>
-      ${def.m>=10?'<div class="qwc">In your answer you may be awarded marks for the quality of your written communication.</div>':''}
+
       ${alines(def.m)}
     </div>`;
   });
@@ -512,7 +515,6 @@ function renderP3Section(letter, topic, marks, qNum, raw) {
         <div class="qt"><span class="qlbl">(d)</span>${e(cleanPart(dTxt,'d'))}</div>
         <div class="qm">(25)</div>
       </div>
-      <div class="qwc">In your answer you may be awarded marks for the quality of your written communication.</div>
       ${alines(25)}
     </div>
     <div class="qi" style="margin-top:1rem;">
@@ -520,7 +522,6 @@ function renderP3Section(letter, topic, marks, qNum, raw) {
         <div class="qt"><span class="qlbl">(e)</span>${e(cleanPart(eTxt,'e'))}</div>
         <div class="qm">(25)</div>
       </div>
-      <div class="qwc">In your answer you may be awarded marks for the quality of your written communication.</div>
       ${alines(25)}
     </div>
   </div>`;
@@ -560,22 +561,15 @@ function renderP12SectionA(raw) {
 
 // ── PAPERS 1 & 2 Section B ────────────────────────────────────────────────────
 // One question (Q6) with parts (a)5 (b)8 (c)12 (d)10 (e)15
-function renderP12SectionB(raw) {
+function renderP12SectionB(raw, extracts) {
   const defs = [{l:'a',m:5},{l:'b',m:8},{l:'c',m:12},{l:'d',m:10},{l:'e',m:15}];
   const ps = extractParts(raw, 6);
-  let html = `<div class="sec">
-    <div class="sec-hdr"><span>Section B — Answer ALL questions</span><span class="sec-m">50 marks</span></div>
-    <div class="qg"><div class="qs">Question 6</div>`;
-  defs.forEach(d => {
-    const txt = ps[d.l] || `[${d.m}-mark question]`;
-    html += `<div class="qi">
-      <div class="ql">
-        <div class="qt"><span class="qlbl">(${d.l})</span>${e(cleanPart(txt,d.l))}</div>
-        <div class="qm">(${d.m})</div>
-      </div>
-      ${d.m>=10?'<div class="qwc">In your answer you may be awarded marks for the quality of your written communication.</div>':''}
-      ${alines(d.m)}
-    </div>`;
+  let html = '<div class="sec"><div class="sec-hdr"><span>Section B — Answer ALL questions</span><span class="sec-m">50 marks</span></div>'
+           + '<div class="extracts-wrapper">' + extracts + '</div>'
+           + '<div class="qg"><div class="qs">Question 6</div>';
+  defs.forEach(function(d) {
+    const txt = ps[d.l] || '[' + d.m + '-mark question]';
+    html += '<div class="qi"><div class="ql"><div class="qt"><span class="qlbl">(' + d.l + ')</span>' + e(cleanPart(txt,d.l)) + '</div><div class="qm">(' + d.m + ')</div></div>' + alines(d.m) + '</div>';
   });
   return html + '</div></div>';
 }
@@ -583,35 +577,34 @@ function renderP12SectionB(raw) {
 // ── PAPERS 1 & 2 Section C ────────────────────────────────────────────────────
 // Choice of ONE from Q7 or Q8, each 25 marks
 function renderP12SectionC(raw) {
-  const essays = raw.split(/(?=Question\s*[78]\b|EITHER|OR(?!\w))/i).filter(p=>p.trim().length>30);
-  const q7 = cleanEssay(essays[0] || '');
-  const q8 = cleanEssay(essays[1] || '');
-  return `<div class="sec">
-    <div class="sec-hdr"><span>Section C — Answer ONE question</span><span class="sec-m">25 marks</span></div>
-    <div class="choice-box">Answer ONE question from Questions 7 and 8.</div>
-    <div class="qg">
-      <div class="qs">Question 7</div>
-      <div class="qi">
-        <div class="ql">
-          <div class="qt">${e(q7||'[25-mark evaluate essay question]')}</div>
-          <div class="qm">(25)</div>
-        </div>
-        <div class="qwc">In your answer you may be awarded marks for the quality of your written communication.</div>
-        ${alines(25)}
-      </div>
-    </div>
-    <div class="qg">
-      <div class="qs">Question 8</div>
-      <div class="qi">
-        <div class="ql">
-          <div class="qt">${e(q8||'[25-mark evaluate essay question]')}</div>
-          <div class="qm">(25)</div>
-        </div>
-        <div class="qwc">In your answer you may be awarded marks for the quality of your written communication.</div>
-        ${alines(25)}
-      </div>
-    </div>
-  </div>`;
+  // Extract Q7 and Q8 by finding their start positions
+  function getEssay(text, qn) {
+    const lines = text.split('\n');
+    let found = false;
+    let out = [];
+    for (let i = 0; i < lines.length; i++) {
+      const stripped = lines[i].replace(/[*_#]/g,'').trim();
+      if (!found && (stripped.startsWith('Question ' + qn) || stripped === 'Q' + qn)) {
+        found = true; continue;
+      }
+      if (found) {
+        const isNext = /^\s*[*_#]*\s*Question\s*\d/.test(lines[i]);
+        if (isNext) break;
+        out.push(lines[i]);
+      }
+    }
+    return cleanEssay(out.join('\n').trim());
+  }
+  const q7 = getEssay(raw, 7) || getEssay(raw, '7') || '';
+  const q8 = getEssay(raw, 8) || getEssay(raw, '8') || '';
+  // Fallback: split on EITHER/OR if numbered approach failed
+  let fb7 = q7, fb8 = q8;
+  if (!fb7 || !fb8) {
+    const parts = raw.split(/(?:EITHER|OR)\s*/i).filter(p=>p.trim().length>20);
+    fb7 = fb7 || cleanEssay(parts[0] || '');
+    fb8 = fb8 || cleanEssay(parts[1] || '');
+  }
+  return '<div class="sec"><div class="sec-hdr"><span>Section C — Answer ONE question from this section</span><span class="sec-m">25 marks</span></div><div class="choice-box">Answer ONE question from Questions 7 and 8.</div><div class="qg"><div class="qs">Question 7</div><div class="qi"><div class="ql"><div class="qt">' + e(fb7 || '[Evaluate the view that...] (25 marks)') + '</div><div class="qm">(25)</div></div>' + alines(25) + '</div></div><div class="qg"><div class="qs">Question 8</div><div class="qi"><div class="ql"><div class="qt">' + e(fb8 || '[To what extent...] (25 marks)') + '</div><div class="qm">(25)</div></div>' + alines(25) + '</div></div></div>';
 }
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
@@ -659,7 +652,7 @@ function extractParts(raw, qNum) {
 
 function cleanPart(txt, lbl) {
   return (txt || '')
-    .replace(new RegExp('^\\s*[*_]*\\(?\\s*' + lbl + '\\s*\\)?[*_]*\\s*', 'i'), '')
+    .replace(/^\s*[*_]*\(\s*[a-e]\s*\)[*_]*\s*/i, '')  // strip (a) (b) etc at start
     .replace(/\*\*(.+?)\*\*/g, '$1')  // strip bold markdown
     .replace(/\*(.+?)\*/g, '$1')        // strip italic markdown
     .replace(/\(\d+\s*marks?\)/gi, '')
@@ -793,10 +786,12 @@ ${structPrompt}
 Begin immediately with EXTRACTS. No preamble.
 IMPORTANT FORMATTING RULES:
 - Do NOT use markdown formatting (no **, no *, no _) anywhere in question text
-- Do NOT use --- dividers between questions
-- Write each sub-part on its own line starting with (a), (b), (c) etc.
+- Do NOT use --- dividers between questions  
+- Write each sub-part on its own line starting exactly with (a), (b), (c) etc. with no other characters before it
 - Write question text as plain sentences only
-- Tables in extracts are fine but nowhere else`;
+- Tables are allowed in extracts only — use standard markdown table format with | separators and a |---|---| separator row
+- Do NOT add "In your answer you may be awarded marks for the quality of your written communication" — this does not appear in Edexcel Economics A papers
+- Section C must contain exactly TWO essay questions: Question 7 and Question 8, each clearly labelled on their own line`;
 
   try {
     const body = { model:'claude-sonnet-4-6', max_tokens:4000, system:sys, messages:[{role:'user',content:user}] };
