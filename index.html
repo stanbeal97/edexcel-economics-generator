@@ -705,13 +705,12 @@ Begin immediately with EXTRACTS. No preamble.`;
     const body = { model:'claude-sonnet-4-20250514', max_tokens:4000, system:sys, messages:[{role:'user',content:user}] };
     if (useSearch) body.tools = [{type:'web_search_20250305',name:'web_search'}];
 
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    const resp = await fetch('https://economics-proxy.stanbeal97.workers.dev', {
       method:'POST',
       headers:{
         'Content-Type':'application/json',
         'x-api-key':apiKey,
         'anthropic-version':'2023-06-01',
-        'anthropic-dangerous-direct-browser-calls':'true'
       },
       body:JSON.stringify(body)
     });
