@@ -92,6 +92,11 @@
   .ext-title { font-size: 15px; font-weight: bold; margin-bottom: 8px; }
   .ext-body { font-size: 13px; line-height: 1.75; white-space: pre-wrap; }
   .ext-src { font-size: 11px; color: var(--muted); font-style: italic; margin-top: 10px; text-align: right; }
+  .md-table { border-collapse: collapse; width: 100%; margin: 8px 0; font-family: var(--font-ui); font-size: 12px; }
+  .md-table th { background: var(--navy); color: white; padding: 6px 10px; text-align: left; font-weight: 600; }
+  .md-table td { padding: 5px 10px; border-bottom: 1px solid var(--border); }
+  .md-table tr:nth-child(even) td { background: #f7f7f5; }
+  .md-list { padding-left: 1.25rem; margin: 6px 0; font-size: 13px; line-height: 1.7; }
   .qg { margin-bottom: 1.5rem; }
   .qs { font-family: var(--font-ui); font-size: 13px; font-weight: 600; color: var(--navy); border-bottom: 1px solid var(--border); padding-bottom: 4px; margin-bottom: 8px; }
   .qi { margin-bottom: 14px; }
@@ -321,6 +326,54 @@ function showLoading(useSearch) {
 function e(t) { return (t||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function alines(n) { return Array(Math.min(Math.max(Math.round(n*0.7),2),14)).fill('<div class="aline"></div>').join(''); }
 
+// Convert markdown formatting to HTML (tables, bold, italic, lists)
+function mdToHtml(text) {
+  if (!text) return '';
+  const lines = text.split('\n');
+  let html = '';
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    // Markdown table: line has | and next line is |---|
+    if (line.includes('|') && i + 1 < lines.length && lines[i+1].match(/^\|[\s\-|:]+\|$/)) {
+      const headers = line.split('|').map(h=>h.trim()).filter(h=>h);
+      i += 2;
+      let t = '<table class="md-table"><thead><tr>';
+      headers.forEach(h => { t += '<th>' + inlineMd(h) + '</th>'; });
+      t += '</tr></thead><tbody>';
+      while (i < lines.length && lines[i].trim().startsWith('|')) {
+        const cells = lines[i].split('|').map(c=>c.trim()).filter(c=>c);
+        t += '<tr>';
+        cells.forEach(c => { t += '<td>' + inlineMd(c) + '</td>'; });
+        t += '</tr>';
+        i++;
+      }
+      html += t + '</tbody></table>';
+    } else if (line.match(/^[\*\-] /)) {
+      let ul = '<ul class="md-list">';
+      while (i < lines.length && lines[i].match(/^[\*\-] /)) {
+        ul += '<li>' + inlineMd(lines[i].replace(/^[\*\-] /, '')) + '</li>';
+        i++;
+      }
+      html += ul + '</ul>';
+    } else if (line.trim() === '') {
+      html += '<br>';
+      i++;
+    } else {
+      html += '<span>' + inlineMd(line) + '</span><br>';
+      i++;
+    }
+  }
+  return html;
+}
+function inlineMd(text) {
+  return e(text)
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>');
+}
+
+
+
 // ─── RENDER ───────────────────────────────────────────────────────────────────
 function renderPaper(text, pk) {
   rawText = text;
@@ -406,7 +459,7 @@ function buildExtracts(raw) {
     return `<div class="extract">
       <div class="ext-lbl">${e(lbl)}</div>
       ${title?`<div class="ext-title">${e(title)}</div>`:''}
-      <div class="ext-body">${e(cb)}</div>
+      <div class="ext-body">${mdToHtml(cb)}</div>
       ${src?`<div class="ext-src">Source: ${e(src)}</div>`:''}
     </div>`;
   }).join('');
@@ -564,24 +617,47 @@ function renderP12SectionC(raw) {
 // ── HELPERS ───────────────────────────────────────────────────────────────────
 function extractParts(raw, qNum) {
   const result = {};
-  // Try to isolate this question's block first
-  const qBlock = raw.match(new RegExp(`Question\\s*${qNum}[^\\n]*([\s\S]*?)(?=Question\\s*\\d|$)`, 'i'));
-  const text = qBlock ? qBlock[1] : raw;
-  const matches = [...text.matchAll(/\(([a-e])\)\s*([\s\S]*?)(?=\n\s*\([a-e]\)|$)/gi)];
-  matches.forEach(m => { result[m[1].toLowerCase()] = m[2].trim(); });
+  // First try to isolate just this question block
+  const qPatterns = [
+    new RegExp('(?:^|\n)\s*(?:Question\s*' + qNum + '|Q' + qNum + ')\b[^\n]*\n([\s\S]*?)(?=\n\s*(?:Question\s*\d|Q\d|Section\s+[ABC])|$)', 'i'),
+    new RegExp('(?:^|\n)\s*\*{0,2}(?:Question\s*' + qNum + '|Q' + qNum + ')\b[^\n]*\n([\s\S]*?)(?=\n\s*\*{0,2}(?:Question\s*\d|Q\d|Section)|$)', 'i'),
+  ];
+  let text = raw;
+  for (const pat of qPatterns) {
+    const m = raw.match(pat);
+    if (m && m[1]) { text = m[1]; break; }
+  }
+  // Match parts like (a), (b) etc — handle markdown formatting around them
+  const partPattern = /(?:^|\n)\s*[*_]{0,2}\(([a-e])\)[*_]{0,2}\s*([\s\S]*?)(?=(?:\n\s*[*_]{0,2}\([a-e]\))|(?:\n\s*---)|(?:\n\s*\*{2,3}\s*$)|$)/gi;
+  const matches = [...text.matchAll(partPattern)];
+  matches.forEach(m => {
+    const letter = m[1].toLowerCase();
+    const partText = m[2].trim()
+      .replace(/^[*_]+|[*_]+$/g, '')  // strip leading/trailing markdown
+      .replace(/\(\d+\)\s*$/, '')     // strip trailing mark count
+      .replace(/\[\d+\s*marks?\]/gi, '') // strip [X marks]
+      .trim();
+    result[letter] = partText;
+  });
   return result;
 }
 
 function cleanPart(txt, lbl) {
-  return txt
-    .replace(new RegExp(`^\\s*\\(?${lbl}\\)?\\s*`, 'i'), '')
+  return (txt || '')
+    .replace(new RegExp('^\\s*[*_]*\\(?\\s*' + lbl + '\\s*\\)?[*_]*\\s*', 'i'), '')
+    .replace(/\*\*(.+?)\*\*/g, '$1')  // strip bold markdown
+    .replace(/\*(.+?)\*/g, '$1')        // strip italic markdown
     .replace(/\(\d+\s*marks?\)/gi, '')
+    .replace(/\[\d+\s*marks?\]/gi, '')
+    .replace(/^[-*]+\s*/, '')
     .trim();
 }
 
 function cleanEssay(txt) {
-  return txt
+  return (txt || '')
     .replace(/^(Question\s*[78]|EITHER|OR)[:\s]*/i, '')
+    .replace(/\*\*(.+?)\*\*/g, '$1')
+    .replace(/\*(.+?)\*/g, '$1')
     .replace(/\[\d+\s*marks?\]/gi, '')
     .trim();
 }
@@ -699,7 +775,13 @@ ${extra ? 'Teacher instructions: '+extra : ''}
 EXACT STRUCTURE:
 ${structPrompt}
 
-Begin immediately with EXTRACTS. No preamble.`;
+Begin immediately with EXTRACTS. No preamble.
+IMPORTANT FORMATTING RULES:
+- Do NOT use markdown formatting (no **, no *, no _) anywhere in question text
+- Do NOT use --- dividers between questions
+- Write each sub-part on its own line starting with (a), (b), (c) etc.
+- Write question text as plain sentences only
+- Tables in extracts are fine but nowhere else`;
 
   try {
     const body = { model:'claude-sonnet-4-6', max_tokens:4000, system:sys, messages:[{role:'user',content:user}] };
