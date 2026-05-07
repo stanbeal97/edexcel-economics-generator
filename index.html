@@ -97,17 +97,13 @@
   .diagram-desc::before { content: "Diagram: "; font-weight: 600; font-style: normal; }
   .essay-stem { font-size: 13px; line-height: 1.7; color: var(--text); margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid var(--border); font-family: var(--font-body); }
   .essay-q { font-size: 14px; font-weight: 500; }
-  .mcq-boxes { display: flex; flex-direction: column; gap: 6px; padding: 10px 0 6px 4px; font-family: var(--font-ui); font-size: 13px; }
-  .mcq-opt { display: flex; align-items: center; gap: 10px; }
-  .mcq-box { width: 16px; height: 16px; border: 1.5px solid var(--text); display: inline-block; flex-shrink: 0; }
   .sa-figure { background: #f7f7f5; border: 1px solid var(--border); border-radius: 4px; padding: 10px 14px; margin: 8px 0 12px; font-size: 12px; font-family: var(--font-ui); }
   .diagram-space { border: 1px solid var(--border); height: 180px; margin: 8px 0 4px; background: #fafafa; display: flex; align-items: center; justify-content: center; color: var(--muted); font-family: var(--font-ui); font-size: 12px; font-style: italic; }
   .diagram-space::after { content: 'Space for diagram'; }
-  .calc-space { border-left: 2px solid var(--border); padding-left: 8px; margin: 4px 0; }
-  .mcq-boxes { display: flex; flex-direction: column; gap: 6px; padding: 10px 0 6px 4px; font-family: var(--font-ui); font-size: 13px; }
-  .mcq-opt { display: flex; align-items: center; gap: 10px; }
+  .mcq-boxes { display: flex; flex-direction: column; gap: 8px; padding: 10px 0 8px 4px; font-family: var(--font-ui); font-size: 13px; }
+  .mcq-opt { display: flex; align-items: center; gap: 10px; line-height: 1.4; }
   .mcq-box { width: 16px; height: 16px; border: 1.5px solid var(--text); display: inline-block; flex-shrink: 0; }
-  .mcq-boxes { display: flex; gap: 1.5rem; padding: 8px 0 4px 4px; font-family: var(--font-ui); font-size: 13px; }
+  .calc-space { border-left: 2px solid var(--border); padding-left: 8px; margin: 4px 0; }
   .mcq-opt { display: flex; align-items: center; gap: 6px; cursor: default; }
   .md-table { border-collapse: collapse; width: 100%; margin: 8px 0; font-family: var(--font-ui); font-size: 12px; }
   .md-table th { background: var(--navy); color: white; padding: 6px 10px; text-align: left; font-weight: 600; }
@@ -346,8 +342,36 @@ function alines(n) { return Array(Math.min(Math.max(Math.round(n*0.7),2),14)).fi
 // Convert markdown formatting to HTML (tables, bold, italic, lists)
 function mdToHtml(text) {
   if (!text) return '';
-  // Pre-process: normalise any line that looks like a table row even without leading |
-  const lines = text.split('\n');
+  // Pre-process: expand single-line tables into proper multi-line format
+  // The AI sometimes writes | Header | |---|---| | Row | all on one line
+  // Detect by presence of the separator pattern |---|---| on the same line as headers
+  if (text.indexOf('|') !== -1) {
+    // Split on the |---|---| separator pattern to find single-line tables
+    const sepPattern = /\|[-\s|:]{3,}\|/;
+    const allLines = text.split('\n');
+    const expanded = [];
+    for (const line of allLines) {
+      if (sepPattern.test(line) && line.trim().startsWith('|') && !line.trim().match(/^\|[-\s|:]+\|$/)) {
+        // This line contains both data and a separator — it's a single-line table
+        // Split at the separator to get header, sep, and rows
+        const sepMatch = line.match(/(.*?)(\|[-\s|:]{3,}\|)(.*)/);
+        if (sepMatch) {
+          const header = sepMatch[1].trim();
+          const sep = sepMatch[2].trim();
+          const rest = sepMatch[3].trim();
+          // Split remaining rows: each row starts with |
+          const rows = rest.split(/(?=\|[^|])/).filter(r => r.trim());
+          expanded.push(header);
+          expanded.push(sep);
+          rows.forEach(r => expanded.push(r.trim()));
+          continue;
+        }
+      }
+      expanded.push(line);
+    }
+    text = expanded.join('\n');
+  }
+    const lines = text.split('\n');
   let html = '';
   let i = 0;
   while (i < lines.length) {
@@ -463,24 +487,43 @@ function renderPaper(text, pk) {
 }
 
 function buildExtracts(raw) {
-  const parts = raw.split(/(?=Extract [A-C]:|EXTRACT [A-C])/i).filter(p => p.trim());
-  if (!parts.length) return `<div class="extract"><div class="ext-body">${e(raw)}</div></div>`;
+  // Split on Figure or Extract labels
+  const parts = raw.split(/(?=(?:Figure|Extract)\s+[A-D0-9]+[:\s])/i).filter(p => p.trim());
+  if (!parts.length) return '<div class="extract"><div class="ext-body">' + mdToHtml(raw) + '</div></div>';
   return parts.map(p => {
     const lines = p.trim().split('\n');
-    const lbl = lines[0].replace(/^#+\s*/,'').trim();
+    const lbl = lines[0].replace(/^#+\s*/,'').replace(/\*\*/g,'').trim();
     const rest = lines.slice(1).join('\n').trim();
-    const tm = rest.match(/^(.+?)\n/);
-    const title = tm ? tm[1].trim() : '';
-    const body = tm ? rest.slice(tm[0].length).trim() : rest;
-    const sm = body.match(/\(([^)]+(?:20\d\d|Times|Guardian|BBC|ONS|Bank|Reuters|FT|Economist)[^)]*)\)\s*$/i);
-    const src = sm ? sm[1] : '';
-    const cb = src ? body.slice(0, body.lastIndexOf('('+src)).trim() : body;
-    return `<div class="extract">
-      <div class="ext-lbl">${e(lbl)}</div>
-      ${title?`<div class="ext-title">${e(title)}</div>`:''}
-      <div class="ext-body">${mdToHtml(cb)}</div>
-      ${src?`<div class="ext-src">Source: ${e(src)}</div>`:''}
-    </div>`;
+
+    // Find title: first non-empty line before the body text
+    const restLines = rest.split('\n');
+    let titleIdx = -1;
+    for (let i = 0; i < Math.min(restLines.length, 3); i++) {
+      const l = restLines[i].trim().replace(/\*\*/g,'');
+      // Title lines are short and don't contain pipe chars or long sentences
+      if (l && l.length < 120 && !l.includes('|') && !l.match(/^\(Source/i)) {
+        titleIdx = i; break;
+      }
+    }
+    const title = titleIdx >= 0 ? restLines[titleIdx].trim().replace(/\*\*/g,'') : '';
+    const bodyLines = titleIdx >= 0 ? restLines.slice(titleIdx + 1) : restLines;
+    let body = bodyLines.join('\n').trim();
+
+    // Strip bold/italic markdown from body (real papers don't use bold in extracts)
+    body = body.replace(/\*\*(.+?)\*\*/g, '$1').replace(/\*(.+?)\*/g, '$1');
+
+    // Extract source citation
+    const srcMatch = body.match(/\((?:Source|Adapted from)[^)]{3,80}(?:20\d\d|data)[^)]*\)\s*$/i)
+                  || body.match(/\(([^)]+(?:20\d\d|Times|Guardian|BBC|ONS|Bank|Reuters|FT|Economist|Association|Institute|Office|Report|Survey)[^)]*)\)\s*$/i);
+    const src = srcMatch ? srcMatch[0].replace(/^\(|\)\s*$/g,'') : '';
+    const cb = src ? body.slice(0, body.lastIndexOf(srcMatch[0])).trim() : body;
+
+    return '<div class="extract">' +
+      '<div class="ext-lbl">' + e(lbl) + '</div>' +
+      (title ? '<div class="ext-title">' + e(title) + '</div>' : '') +
+      '<div class="ext-body">' + mdToHtml(cb) + '</div>' +
+      (src ? '<div class="ext-src">Source: ' + e(src) + '</div>' : '') +
+      '</div>';
   }).join('');
 }
 
@@ -609,22 +652,26 @@ function renderP12SectionA(raw) {
 
   // Strip table/figure content from a text block (to avoid double-rendering)
   function stripFigure(text) {
-    // Remove markdown table rows (lines containing |)
     const lines = text.split('\n');
     const out = [];
     let inTable = false;
     for (const line of lines) {
-      const hasPipe = (line.match(/\|/g)||[]).length >= 1;
-      const isSepRow = /^[\|\s\-:]+$/.test(line.trim()) && line.includes('-') && line.includes('|');
+      const t = line.trim();
+      const hasPipe = (t.match(/\|/g)||[]).length >= 1;
+      const isSepRow = /^[\|\s\-:]+$/.test(t) && t.includes('-') && t.includes('|');
+      // Skip table rows
       if (hasPipe || isSepRow) { inTable = true; continue; }
-      if (inTable && line.trim() === '') { inTable = false; continue; }
-      if (!inTable) out.push(line);
+      // Skip blank line immediately after table
+      if (inTable && t === '') { inTable = false; continue; }
+      inTable = false;
+      // Skip Figure/Table header lines
+      if (/^(?:Figure|Table)\s*[\d:]/i.test(t)) continue;
+      // Skip any Source citation lines in any format
+      if (/^\(?(?:Source|Adapted from|©)/i.test(t)) continue;
+      if (/^\(Source/i.test(t)) continue;
+      out.push(line);
     }
-    // Also strip Figure/Table header lines and Source lines
-    return out
-      .filter(l => !/^(?:Figure|Table)\s*\d/i.test(l.trim()))
-      .filter(l => !/^\(Source:/i.test(l.trim()))
-      .join('\n').trim();
+    return out.join('\n').trim();
   }
 
   function getIntro(block) {
@@ -850,6 +897,8 @@ function cleanPart(txt, lbl) {
     .replace(/\(\d+\s*marks?\)/gi, '')
     .replace(/\[\d+\s*marks?\]/gi, '')
     .replace(/^[-*]+\s*/, '')
+    // Strip any trailing source citation
+    .replace(/\s*\(?(?:Source|Adapted from)[^)]{3,100}\)?\s*$/i, '')
     .trim();
 }
 
