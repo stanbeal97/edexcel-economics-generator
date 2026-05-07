@@ -1229,7 +1229,7 @@ function cleanPart(txt, lbl) {
 
 function cleanEssay(txt) {
   return (txt || '')
-    .replace(/^Question\s*[78][^\n]*\n?/i, '')  // strip "Question 7/8" header line
+    // Note: Question 7/8 label stripping handled by getEssay, not here
     .replace(/^(EITHER|OR)[:\s]*/i, '')
     .replace(/^Answer ONE question[^\n]*\n?/i, '') // strip choice instructions
     .replace(/^Indicate which[^\n]*\n?/i, '')
@@ -1430,29 +1430,64 @@ function renderSectionCPages(raw, startPage) {
   const pages = [];
   let pageNum = startPage;
 
-  function getEssay(text, qn) {
+function getEssay(text, qn) {
+    if (!text) return '';
     const lines = text.split('\n');
-    let found = false, out = [];
+    let found = false;
+    let out = [];
+
     for (let i = 0; i < lines.length; i++) {
-      const stripped = lines[i].replace(/[*_#]/g,'').trim();
-      if (!found && (stripped.startsWith('Question ' + qn) || stripped === 'Q' + qn)) { found = true; continue; }
+      const stripped = lines[i].replace(/[*_#]/g, '').trim();
+      const isThisQ = new RegExp('^(?:Question\\s*' + qn + '|Q' + qn + '|' + qn + '\\.)\\b', 'i').test(stripped);
+
+      if (!found && isThisQ) {
+        found = true;
+        // Capture any text on the SAME line after the question label (e.g. "Question 7: Evaluate...")
+        const afterLabel = stripped.replace(new RegExp('^(?:Question\\s*' + qn + '|Q' + qn + '|' + qn + '\\.)\\s*[:\\-]?\\s*', 'i'), '').trim();
+        if (afterLabel) out.push(afterLabel);
+        continue;
+      }
       if (found) {
-        if (/^\s*[*_#]*\s*Question\s*\d/.test(lines[i])) break;
+        // Stop at the next question
+        if (/^\s*[*_#]*\s*(?:Question\s*\d|Q\d|\d\.\s)/.test(lines[i])) break;
         out.push(lines[i]);
       }
     }
+
+    // If nothing found by label, try a fallback: split on EITHER/OR
+    if (out.length === 0) {
+      const eitherParts = text.split(/(?:^|\n)\s*(?:EITHER|OR)\s*/i).filter(p => p.trim().length > 20);
+      if (eitherParts.length >= qn - 6) {
+        return cleanEssay(eitherParts[qn - 7] || '');
+      }
+    }
+
     return cleanEssay(out.join('\n').trim());
   }
 
   function splitEssayParts(text) {
-    if (!text) return { stem: '', question: text || '' };
+    if (!text) return { stem: '', question: '' };
+    // Split at the Evaluate command word — everything before is the context stem
     const evalIdx = text.search(/Evaluate\b/i);
-    if (evalIdx > 10) return { stem: text.slice(0, evalIdx).trim(), question: text.slice(evalIdx).trim() };
-    return { stem: '', question: text };
+    if (evalIdx > 10) {
+      return { stem: text.slice(0, evalIdx).trim(), question: text.slice(evalIdx).trim() };
+    }
+    // If Evaluate is at the start (no stem), return as question only
+    if (evalIdx === 0 || evalIdx <= 10) {
+      return { stem: '', question: text.trim() };
+    }
+    return { stem: '', question: text.trim() };
   }
 
-  const fb7 = getEssay(raw, 7) || getEssay(raw, '7') || 'Evaluate the view that...';
-  const fb8 = getEssay(raw, 8) || getEssay(raw, '8') || 'Evaluate the view that...';
+  const fb7 = getEssay(raw, 7) || getEssay(raw, '7') || '';
+  const fb8 = getEssay(raw, 8) || getEssay(raw, '8') || '';
+  // Debug: log what we extracted (visible in browser console F12)
+  console.log('Section C raw (first 500 chars):', raw.substring(0, 500));
+  console.log('Essay 7 extracted:', fb7.substring(0, 200));
+  console.log('Essay 8 extracted:', fb8.substring(0, 200));
+  // If extraction completely failed, show a useful placeholder
+  const essay7 = fb7 || 'Evaluate the view that [question 7 not found — check browser console for raw text]';
+  const essay8 = fb8 || 'Evaluate the view that [question 8 not found — check browser console for raw text]';
 
   const headerContent =
     '<div class="sec-hdr-pg">SECTION C</div>' +
@@ -1462,8 +1497,8 @@ function renderSectionCPages(raw, startPage) {
 
   // Verified Edexcel format: BOTH questions shown together with tick boxes on one page,
   // then answer space on subsequent pages.
-  const p7 = splitEssayParts(fb7);
-  const p8 = splitEssayParts(fb8);
+  const p7 = splitEssayParts(essay7);
+  const p8 = splitEssayParts(essay8);
 
   function essayQBlock(num, parts) {
     // No tick box here — candidate indicates their choice on the answer page
