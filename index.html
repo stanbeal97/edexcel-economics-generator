@@ -907,84 +907,44 @@ function getQBlock(raw, n) {
 }
 
 function getFigure(block) {
-  // Extract everything before the first sub-part (a)(b)(c)
-  const beforeParts = block.split(/\n\s*[*_]*\s*\([a-e]\)/)[0];
-  // If it contains a table or figure, return the whole beforeParts block
-  // This ensures the prose intro + table are shown together in the figure box
-  const hasTable = (beforeParts.match(/\|/g)||[]).length >= 3;
-  const hasFigLabel = /(?:Figure|Table)\s*[\d:]/i.test(beforeParts);
-  const hasTableIntro = /(?:The following|The table|The data|The figure|The information below)/i.test(beforeParts);
-  if (hasTable || hasFigLabel || hasTableIntro) {
-    // Return everything from any Figure/Table label or intro sentence onwards
-    const figMatch = beforeParts.match(/(?:Figure\s*\d|Table\s*\d|The following|The table|The data|The figure|The information)[\s\S]*/i);
-    return figMatch ? figMatch[0].trim() : beforeParts.trim();
-  }
-  return '';
+  // Return ALL content before the first sub-part as the question stem/figure.
+  // This covers tables, prose stems, news extracts, short scenarios — anything
+  // the AI wrote as context. Previously only returned table-containing blocks,
+  // causing prose-only stems (e.g. "In 2023, the price of coffee rose by 10%...")
+  // to be silently discarded.
+  const beforeParts = block.split(/\n\s*[*_]{0,2}\s*\([a-e]\)/)[0].trim();
+  const cleaned = beforeParts.replace(/^Question\s*\d+[^\n]*\n?/i, '').trim();
+  return cleaned.length > 10 ? cleaned : '';
 }
 
 // Strip ALL figure/table content from a text block to avoid double-rendering.
   // Removes: table rows, Figure/Table headers, Source lines, and any prose
   // intro sentence that immediately precedes a table (e.g. "The following data shows...")
 function stripFigure(text) {
+  // Since getFigure() now returns ALL content before the first sub-part,
+  // stripFigure just needs to remove everything before the first sub-part label.
+  // This prevents the stem from appearing both in the grey figure box AND
+  // inline in the question text.
+  const firstPartMatch = text.match(/\n\s*[*_]{0,2}\s*\([a-e]\)/);
+  if (firstPartMatch) {
+    return text.slice(firstPartMatch.index).trim();
+  }
+  // If no sub-part found, remove table rows and source lines at minimum
   const lines = text.split('\n');
-  const out = [];
-  let inTable = false;
-  let tableFound = false;
-
-  // First pass: find if there is a table, and where it starts
-  let tableStartLine = -1;
-  for (let i = 0; i < lines.length; i++) {
-    const t = lines[i].trim();
-    if ((t.match(/\|/g)||[]).length >= 1) { tableStartLine = i; break; }
-  }
-
-  for (let i = 0; i < lines.length; i++) {
-    const t = lines[i].trim();
-    const hasPipe = (t.match(/\|/g)||[]).length >= 1;
-    const isSepRow = /^[\|\s\-:]+$/.test(t) && t.includes('-') && t.includes('|');
-
-    // Skip Figure/Table header lines
-    if (/^(?:Figure|Table)\s*[\d:]/i.test(t)) continue;
-    // Skip Source citation lines
-    if (/^\(?(?:Source|Adapted from|©)/i.test(t)) continue;
-
-    // Skip table rows
-    if (hasPipe || isSepRow) { inTable = true; tableFound = true; continue; }
-    // Skip blank line immediately after table
-    if (inTable && t === '') { inTable = false; continue; }
-    inTable = false;
-
-    // Skip prose intro lines that appear just before the table
-    // (e.g. "The following data shows..." or "The table below shows...")
-    if (tableStartLine > 0 && i < tableStartLine) {
-      if (/^(?:The following|The table|The data|The figure|The diagram|The information|Use the|Study the|Look at)/i.test(t)) continue;
-    }
-
-    out.push(lines[i]);
-  }
-  return out.join('\n').trim();
+  return lines.filter(l => {
+    const t = l.trim();
+    if (/^(?:Figure|Table)\s*[\d:]/i.test(t)) return false;
+    if (/^\(?(?:Source|Adapted from|©)/i.test(t)) return false;
+    if ((t.match(/\|/g)||[]).length >= 2) return false;
+    return true;
+  }).join('\n').trim();
 }
 function getIntro(block) {
-  // Get the question context sentence — stop before any figure, table, or sub-part
-  // Also stop before "The following data..." intro sentences (these belong in the figure box)
-  const lines = block.split('\n');
-  const intro = [];
-  for (const l of lines) {
-    const t = l.trim();
-    // Stop at sub-part labels
-    if (/^\s*[*_]*\([a-e]\)/.test(l)) break;
-    // Stop at Figure/Table headers
-    if (/^(?:Figure|Table)\s*[\d:]/i.test(t)) break;
-    // Stop at Source lines
-    if (/^\(?(?:Source|Adapted from)/i.test(t)) break;
-    // Stop at table rows
-    if ((t.match(/\|/g)||[]).length >= 2) break;
-    // Stop at "The following data/table shows..." — this is part of the figure
-    if (/^(?:The following|The table|The data|The figure|The diagram|The information below)/i.test(t)) break;
-    if (t) intro.push(t);
+    // getIntro is used for the "Question N" heading only.
+    // The full stem is shown in the figure box via getFigure(), so we return
+    // empty here to avoid duplicating it in the heading.
+    return '';
   }
-  return intro.join(' ').replace(/^Question\s*\d+\s*/i,'').replace(/[*_#]/g,'').trim();
-}
 // ── PAPERS 1 & 2 Section A ────────────────────────────────────────────────────
 // Real format (verified from 2023/2024 past papers):
 // 5 standalone questions each with their OWN embedded figure/data (NOT the main extracts)
@@ -1659,7 +1619,11 @@ Each question has its own self-contained stem with a source citation. Questions 
                    Extended written answer. KAA 3 marks + application 1 mark referencing the data.
                    Example: "Using the information provided and the concept of monopsony, explain why [workers] have had lower wage rises."
 
-Each Section A question MUST have its own self-contained data: a short stem with a figure/table/chart/diagram, and a source citation.
+Each Section A question MUST have its own self-contained stem written BEFORE the sub-part labels.
+The stem must appear on its own line(s) ABOVE the (a) sub-part — never embed the data inside the sub-part text.
+The stem can be: a news-style sentence or two, a data table, a short excerpt, or a diagram description — but it MUST be present and MUST come before (a).
+If a question says "With reference to the information provided" or "Using the data above", there MUST be data above it.
+Always include a source citation (Source: ...) at the end of the stem.
 CRITICAL: Every question (1-5) must have exactly ONE sub-part worth 1 mark that is a multiple-choice question (MCQ) with options A, B, C, D on separate lines.
 The MCQ can appear as part (a), (b), or (c) — it varies between questions.
 The remaining 4 marks per question are split between written answer, calculation, or diagram sub-parts.
