@@ -740,24 +740,41 @@ function renderP12SectionA(raw) {
       html += '<div class="sa-figure">' + mdToHtml(figure) + '</div>';
     }
 
-    qd.parts.forEach(p => {
-      const txt = psClean[p.l] || ps[p.l] || '[' + p.m + '-mark question]';
-      const cleaned = cleanPart(txt, p.l);
-      // Detect MCQ (cross in box) style — 1-mark questions asking to identify/state from options A-D
-      // Detect type from actual question content, not just from qDefs type
-      // This handles cases where AI swaps the order of parts
-      // MCQ is ALWAYS 1 mark in Edexcel Economics A — never more
-      // Only treat as MCQ if the part is worth 1 mark AND looks like a MCQ question
-      const looksLikeMCQ = p.m === 1 && (
-        /which one|which of the following|correct answer|best describes|most likely/i.test(cleaned)
-        || /^[A-D]\s/.test(cleaned.trim())
-        || p.type === 'mcq'
-      );
-      const looksLikeDiagram = /draw|sketch|label|diagram|curve|axis/i.test(cleaned) && p.m >= 3;
-      const looksLikeCalc = /calculat|show your working|percentage change|change in|how much/i.test(cleaned);
-      const isMCQ = looksLikeMCQ;  // must be 1 mark — hard rule
-      const isDiagram = (p.type === 'diagram' || looksLikeDiagram) && !isMCQ;
-      const isCalc = (p.type === 'calculate' || looksLikeCalc) && !isMCQ && !isDiagram;
+    // Before rendering parts, detect if the AI has swapped part order vs qDefs.
+    // Strategy: for each parsed part, check if its CONTENT matches its qDef TYPE.
+    // If a part labelled (a) in qDefs as 'mcq' contains diagram language, the AI swapped them.
+    // We re-map AI content to qDef slots by matching content type to expected type.
+    const parsedParts = qd.parts.map(p => ({
+      ...p,
+      txt: cleanPart(psClean[p.l] || ps[p.l] || '[' + p.m + '-mark question]', p.l)
+    }));
+
+    // Detect content type of each parsed part
+    function detectContentType(txt) {
+      if (/which one|which of the following|correct answer|best describes|most likely/i.test(txt)
+          || /^[A-D]\s/.test(txt.trim())) return 'mcq';
+      if (/draw|sketch|label|diagram|curve|axis/i.test(txt)) return 'diagram';
+      if (/calculat|show your working|percentage change|change in|how much/i.test(txt)) return 'calculate';
+      return 'written';
+    }
+
+    // Check if AI swapped MCQ and another part: find the part whose content is MCQ
+    // and the part whose qDef type is MCQ — if different, swap their content
+    const mcqDefIdx = qd.parts.findIndex(p => p.type === 'mcq');
+    const mcqContentIdx = parsedParts.findIndex(p => detectContentType(p.txt) === 'mcq');
+    if (mcqDefIdx !== -1 && mcqContentIdx !== -1 && mcqDefIdx !== mcqContentIdx) {
+      // Swap the txt values between the MCQ def slot and where MCQ content actually is
+      const tmp = parsedParts[mcqDefIdx].txt;
+      parsedParts[mcqDefIdx].txt = parsedParts[mcqContentIdx].txt;
+      parsedParts[mcqContentIdx].txt = tmp;
+    }
+
+    parsedParts.forEach(p => {
+      const cleaned = p.txt;
+      // MCQ is ALWAYS 1 mark — use the qDef type as primary, content as fallback
+      const isMCQ = p.type === 'mcq' || (p.m === 1 && detectContentType(cleaned) === 'mcq');
+      const isDiagram = (p.type === 'diagram' || detectContentType(cleaned) === 'diagram') && !isMCQ;
+      const isCalc = (p.type === 'calculate' || detectContentType(cleaned) === 'calculate') && !isMCQ && !isDiagram;
       // Strip any [Diagram: ...] description from question text
       const diagDescMatch = cleaned.match(/\[Diagram[:\s][^\]]*\]/i) || cleaned.match(/\[The diagram[^\]]*\]/i);
       const hasDiagDesc = !!diagDescMatch;
