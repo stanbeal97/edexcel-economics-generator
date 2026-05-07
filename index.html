@@ -1857,6 +1857,14 @@ ${ms === 'yes' ? '- Add MARK SCHEME after the paper with AO1/AO2/AO3/AO4 breakdo
     }
     if (!text.trim()) throw new Error('Empty response — please try again.');
 
+    // Diagnostic: log raw output so we can see how the model formats it
+    console.log('=== RAW OUTPUT (first 3000 chars) ===');
+    console.log(text.substring(0, 3000));
+    const _saM = text.match(/SECTION A[^\n]*([\s\S]*?)(?=SECTION B|$)/i);
+    console.log('=== SECTION A RAW ===', _saM ? _saM[1].substring(0, 800) : 'NOT FOUND');
+    const _scM = text.match(/SECTION C[^\n]*([\s\S]*?)$/i);
+    console.log('=== SECTION C RAW ===', _scM ? _scM[1].substring(0, 400) : 'NOT FOUND');
+
     renderPaper(text, pk);
     ['printBtn','resetBtn','copyBtn'].forEach(id => document.getElementById(id).disabled = false);
     setStatus('Paper generated. Click Print / Save as PDF to export.');
