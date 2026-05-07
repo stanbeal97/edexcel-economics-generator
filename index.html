@@ -639,48 +639,82 @@ function renderP12SectionA(raw) {
   }
 
   function getFigure(block) {
-    // Match named figures/tables before the first sub-part
+    // Extract everything before the first sub-part (a)(b)(c)
     const beforeParts = block.split(/\n\s*[*_]*\s*\([a-e]\)/)[0];
-    const figMatch = beforeParts.match(/Figure\s*\d[\s\S]*/i)
-                  || beforeParts.match(/Table\s*\d[\s\S]*/i)
-                  || beforeParts.match(/(?:The following|The table|Source)[^\n]*[\s\S]*/i);
-    if (figMatch) return figMatch[0].trim();
-    // Also catch any block containing a markdown pipe table
-    if (beforeParts && (beforeParts.match(/\|/g)||[]).length >= 3) return beforeParts.trim();
+    // If it contains a table or figure, return the whole beforeParts block
+    // This ensures the prose intro + table are shown together in the figure box
+    const hasTable = (beforeParts.match(/\|/g)||[]).length >= 3;
+    const hasFigLabel = /(?:Figure|Table)\s*[\d:]/i.test(beforeParts);
+    const hasTableIntro = /(?:The following|The table|The data|The figure|The information below)/i.test(beforeParts);
+    if (hasTable || hasFigLabel || hasTableIntro) {
+      // Return everything from any Figure/Table label or intro sentence onwards
+      const figMatch = beforeParts.match(/(?:Figure\s*\d|Table\s*\d|The following|The table|The data|The figure|The information)[\s\S]*/i);
+      return figMatch ? figMatch[0].trim() : beforeParts.trim();
+    }
     return '';
   }
 
-  // Strip table/figure content from a text block (to avoid double-rendering)
+  // Strip ALL figure/table content from a text block to avoid double-rendering.
+  // Removes: table rows, Figure/Table headers, Source lines, and any prose
+  // intro sentence that immediately precedes a table (e.g. "The following data shows...")
   function stripFigure(text) {
     const lines = text.split('\n');
     const out = [];
     let inTable = false;
-    for (const line of lines) {
-      const t = line.trim();
+    let tableFound = false;
+
+    // First pass: find if there is a table, and where it starts
+    let tableStartLine = -1;
+    for (let i = 0; i < lines.length; i++) {
+      const t = lines[i].trim();
+      if ((t.match(/\|/g)||[]).length >= 1) { tableStartLine = i; break; }
+    }
+
+    for (let i = 0; i < lines.length; i++) {
+      const t = lines[i].trim();
       const hasPipe = (t.match(/\|/g)||[]).length >= 1;
       const isSepRow = /^[\|\s\-:]+$/.test(t) && t.includes('-') && t.includes('|');
+
+      // Skip Figure/Table header lines
+      if (/^(?:Figure|Table)\s*[\d:]/i.test(t)) continue;
+      // Skip Source citation lines
+      if (/^\(?(?:Source|Adapted from|©)/i.test(t)) continue;
+
       // Skip table rows
-      if (hasPipe || isSepRow) { inTable = true; continue; }
+      if (hasPipe || isSepRow) { inTable = true; tableFound = true; continue; }
       // Skip blank line immediately after table
       if (inTable && t === '') { inTable = false; continue; }
       inTable = false;
-      // Skip Figure/Table header lines
-      if (/^(?:Figure|Table)\s*[\d:]/i.test(t)) continue;
-      // Skip any Source citation lines in any format
-      if (/^\(?(?:Source|Adapted from|©)/i.test(t)) continue;
-      if (/^\(Source/i.test(t)) continue;
-      out.push(line);
+
+      // Skip prose intro lines that appear just before the table
+      // (e.g. "The following data shows..." or "The table below shows...")
+      if (tableStartLine > 0 && i < tableStartLine) {
+        if (/^(?:The following|The table|The data|The figure|The diagram|The information|Use the|Study the|Look at)/i.test(t)) continue;
+      }
+
+      out.push(lines[i]);
     }
     return out.join('\n').trim();
   }
 
   function getIntro(block) {
-    // Get question intro text (before any figure or sub-parts)
+    // Get the question context sentence — stop before any figure, table, or sub-part
+    // Also stop before "The following data..." intro sentences (these belong in the figure box)
     const lines = block.split('\n');
     const intro = [];
     for (const l of lines) {
-      if (/^\s*[*_]*\(a\)/.test(l) || /^Figure\s*\d/i.test(l.trim()) || /^Table\s*\d/i.test(l.trim())) break;
-      if (l.trim()) intro.push(l.trim());
+      const t = l.trim();
+      // Stop at sub-part labels
+      if (/^\s*[*_]*\([a-e]\)/.test(l)) break;
+      // Stop at Figure/Table headers
+      if (/^(?:Figure|Table)\s*[\d:]/i.test(t)) break;
+      // Stop at Source lines
+      if (/^\(?(?:Source|Adapted from)/i.test(t)) break;
+      // Stop at table rows
+      if ((t.match(/\|/g)||[]).length >= 2) break;
+      // Stop at "The following data/table shows..." — this is part of the figure
+      if (/^(?:The following|The table|The data|The figure|The diagram|The information below)/i.test(t)) break;
+      if (t) intro.push(t);
     }
     return intro.join(' ').replace(/^Question\s*\d+\s*/i,'').replace(/[*_#]/g,'').trim();
   }
@@ -712,13 +746,18 @@ function renderP12SectionA(raw) {
       // Detect MCQ (cross in box) style — 1-mark questions asking to identify/state from options A-D
       // Detect type from actual question content, not just from qDefs type
       // This handles cases where AI swaps the order of parts
-      const looksLikeMCQ = /which one|which of the following|correct answer|best describes|most likely/i.test(cleaned)
-                        || (p.m === 1 && /^[A-D]\s/.test(cleaned.trim()));
+      // MCQ is ALWAYS 1 mark in Edexcel Economics A — never more
+      // Only treat as MCQ if the part is worth 1 mark AND looks like a MCQ question
+      const looksLikeMCQ = p.m === 1 && (
+        /which one|which of the following|correct answer|best describes|most likely/i.test(cleaned)
+        || /^[A-D]\s/.test(cleaned.trim())
+        || p.type === 'mcq'
+      );
       const looksLikeDiagram = /draw|sketch|label|diagram|curve|axis/i.test(cleaned) && p.m >= 3;
-      const looksLikeCalc = /calculat|show your working|percentage|change in|how much/i.test(cleaned);
-      const isMCQ = p.type === 'mcq' || looksLikeMCQ;
-      const isDiagram = (p.type === 'diagram' || looksLikeDiagram) && !looksLikeMCQ;
-      const isCalc = (p.type === 'calculate' || looksLikeCalc) && !looksLikeMCQ && !isDiagram;
+      const looksLikeCalc = /calculat|show your working|percentage change|change in|how much/i.test(cleaned);
+      const isMCQ = looksLikeMCQ;  // must be 1 mark — hard rule
+      const isDiagram = (p.type === 'diagram' || looksLikeDiagram) && !isMCQ;
+      const isCalc = (p.type === 'calculate' || looksLikeCalc) && !isMCQ && !isDiagram;
       // Strip any [Diagram: ...] description from question text
       const diagDescMatch = cleaned.match(/\[Diagram[:\s][^\]]*\]/i) || cleaned.match(/\[The diagram[^\]]*\]/i);
       const hasDiagDesc = !!diagDescMatch;
@@ -1026,6 +1065,7 @@ IMPORTANT rules from real papers:
 - Calculation questions always say "You are advised to show your working" or "Calculate... Show your working"
 - Written 4-mark questions usually say "With reference to the information provided, explain one [reason/impact/likely effect]"
 - MCQ options are listed as A B C D each on a separate line, sometimes with a two-column table format
+- CRITICAL: MCQ (multiple choice) sub-parts are ALWAYS worth exactly 1 mark. Never write a MCQ sub-part worth 2, 3 or 4 marks. Higher mark sub-parts must use written, calculation or diagram question types
 
 Ensure variety across Q1-Q5: include at least one diagram question, at least one calculation, and at least two written explain questions.
 Do NOT use "Assess", "Evaluate" or "Discuss" in Section A.
