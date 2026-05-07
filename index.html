@@ -407,7 +407,7 @@
       <div class="tb-sub">A Level 9EC0 · Exact Edexcel Format · AI-Powered</div>
     </div>
   </div>
-  <div class="tb-badge">Powered by Claude AI</div>
+  <div class="tb-badge" id="tbBadge">Powered by Claude AI</div>
 </div>
 
 <div class="layout">
@@ -415,12 +415,25 @@
   <!-- SIDEBAR -->
   <div class="sidebar">
     <div class="sidebar-section">
-      <div class="sb-h">API Key</div>
+      <div class="sb-h">AI Model</div>
       <div class="field">
-        <label>Anthropic API Key</label>
-        <input type="password" id="apiKey" placeholder="sk-ant-api03-...">
+        <label>Select model</label>
+        <select id="aiModel" onchange="updateProviderUI()">
+          <option value="gemini-3.1-pro-preview">Gemini 3.1 Pro (Google) — highest quality</option>
+          <option value="gemini-3-flash-preview">Gemini 3 Flash (Google) — fast, free tier</option>
+          <option value="claude">Claude Sonnet (Anthropic)</option>
+        </select>
       </div>
-      <div class="api-note">Get a free key at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a>. It stays only in this page and is never stored.</div>
+      <div id="geminiKeyField" class="field">
+        <label>Google AI Studio API Key</label>
+        <input type="password" id="geminiKey" placeholder="AIza...">
+        <div class="api-note" style="margin-top:5px;">Get a free key at <a href="https://aistudio.google.com" target="_blank">aistudio.google.com</a></div>
+      </div>
+      <div id="claudeKeyField" class="field" style="display:none;">
+        <label>Anthropic API Key</label>
+        <input type="password" id="claudeKey" placeholder="sk-ant-api03-...">
+        <div class="api-note" style="margin-top:5px;">Get a free key at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a></div>
+      </div>
     </div>
     <div class="divider"></div>
 
@@ -443,23 +456,6 @@
       <div class="field">
         <label>Topic focus</label>
         <select id="topic">
-          <option value="any">Mixed / Any topic</option>
-          <optgroup label="Microeconomics">
-            <option value="supply_demand">Supply &amp; demand</option>
-            <option value="elasticity">Elasticity (PED, PES, YED, XED)</option>
-            <option value="market_failure">Market failure &amp; externalities</option>
-            <option value="competition">Market structures (monopoly, oligopoly)</option>
-            <option value="labour">Labour markets</option>
-            <option value="inequality">Income &amp; wealth inequality</option>
-          </optgroup>
-          <optgroup label="Macroeconomics">
-            <option value="growth">Economic growth &amp; GDP</option>
-            <option value="inflation">Inflation &amp; monetary policy</option>
-            <option value="unemployment">Unemployment</option>
-            <option value="fiscal">Fiscal policy</option>
-            <option value="trade">Trade &amp; exchange rates</option>
-            <option value="development">Development economics</option>
-          </optgroup>
         </select>
       </div>
       <div class="field">
@@ -549,7 +545,87 @@ const STRUCTS = {
   }
 };
 
+function updateProviderUI() {
+  const model = document.getElementById('aiModel').value;
+  const isClaude = model === 'claude';
+  document.getElementById('claudeKeyField').style.display = isClaude ? '' : 'none';
+  document.getElementById('geminiKeyField').style.display = isClaude ? 'none' : '';
+  const label = document.getElementById('aiModel').options[document.getElementById('aiModel').selectedIndex].text.split(' (')[0];
+  document.getElementById('tbBadge').textContent = 'Powered by ' + label;
+}
+
 function updateStruct() {
+  _updateStructInner();
+  updateTopicOptions();
+}
+
+const MICRO_TOPICS = [
+  ['any', 'Mixed / Any topic'],
+  ['supply_demand', 'Supply &amp; demand'],
+  ['elasticity', 'Elasticity (PED, PES, YED, XED)'],
+  ['market_failure', 'Market failure &amp; externalities'],
+  ['competition', 'Market structures (monopoly, oligopoly)'],
+  ['labour', 'Labour markets'],
+  ['inequality', 'Income &amp; wealth inequality'],
+];
+const MACRO_TOPICS = [
+  ['any', 'Mixed / Any topic'],
+  ['growth', 'Economic growth &amp; GDP'],
+  ['inflation', 'Inflation &amp; monetary policy'],
+  ['unemployment', 'Unemployment'],
+  ['fiscal', 'Fiscal policy'],
+  ['trade', 'Trade &amp; exchange rates'],
+  ['development', 'Development economics'],
+];
+const ALL_TOPICS = [
+  ['any', 'Mixed / Any topic'],
+  ['__micro__', '── Microeconomics ──', true],
+  ['supply_demand', 'Supply &amp; demand'],
+  ['elasticity', 'Elasticity (PED, PES, YED, XED)'],
+  ['market_failure', 'Market failure &amp; externalities'],
+  ['competition', 'Market structures (monopoly, oligopoly)'],
+  ['labour', 'Labour markets'],
+  ['inequality', 'Income &amp; wealth inequality'],
+  ['__macro__', '── Macroeconomics ──', true],
+  ['growth', 'Economic growth &amp; GDP'],
+  ['inflation', 'Inflation &amp; monetary policy'],
+  ['unemployment', 'Unemployment'],
+  ['fiscal', 'Fiscal policy'],
+  ['trade', 'Trade &amp; exchange rates'],
+  ['development', 'Development economics'],
+];
+
+function updateTopicOptions() {
+  const pk = document.getElementById('paper').value;
+  const sel = document.getElementById('topic');
+  const current = sel.value;
+  sel.innerHTML = '';
+
+  const topics = pk === 'p1' ? MICRO_TOPICS : pk === 'p2' ? MACRO_TOPICS : ALL_TOPICS;
+
+  topics.forEach(([val, label, disabled]) => {
+    if (disabled) {
+      const opt = document.createElement('option');
+      opt.disabled = true;
+      opt.value = '';
+      opt.textContent = label.replace(/&amp;/g, '&');
+      opt.style.color = '#999';
+      opt.style.fontStyle = 'italic';
+      sel.appendChild(opt);
+    } else {
+      const opt = document.createElement('option');
+      opt.value = val;
+      opt.innerHTML = label;
+      sel.appendChild(opt);
+    }
+  });
+
+  // Restore previous selection if still valid, otherwise reset to 'any'
+  const valid = [...sel.options].some(o => o.value === current && !o.disabled);
+  sel.value = valid ? current : 'any';
+}
+
+function _updateStructInner() {
   const k = document.getElementById('paper').value;
   const s = STRUCTS[k];
   const box = document.getElementById('structBox');
@@ -574,6 +650,7 @@ function updateStruct() {
   }
 }
 updateStruct();
+updateTopicOptions();
 
 // ─── STATE ────────────────────────────────────────────────────────────────────
 let rawText = '';
@@ -1571,11 +1648,21 @@ function renderP3Pages(saRaw, sbRaw, startPage) {
 }
 
 async function generate() {
-  const apiKey = document.getElementById('apiKey').value.trim();
-  if (!apiKey || !apiKey.startsWith('sk-ant')) {
+  const selectedModel = document.getElementById('aiModel').value;
+  const isClaude = selectedModel === 'claude';
+  const claudeKey = document.getElementById('claudeKey').value.trim();
+  const geminiKey = document.getElementById('geminiKey').value.trim();
+
+  if (isClaude && (!claudeKey || !claudeKey.startsWith('sk-ant'))) {
     alert('Please enter a valid Anthropic API key (starts with sk-ant-).\nGet one free at console.anthropic.com');
     return;
   }
+  if (!isClaude && (!geminiKey || !geminiKey.startsWith('AIza'))) {
+    alert('Please enter a valid Google AI Studio API key (starts with AIza).\nGet one free at aistudio.google.com');
+    return;
+  }
+  const apiKey = isClaude ? claudeKey : geminiKey;
+  const provider = isClaude ? 'claude' : 'gemini';
 
   const pk    = document.getElementById('paper').value;
   const topic = document.getElementById('topic').value;
@@ -1697,72 +1784,77 @@ ${ms === 'yes' ? '- Add MARK SCHEME after the paper with AO1/AO2/AO3/AO4 breakdo
     formattingRules;
 
   try {
-    const body = { model:'claude-sonnet-4-6', max_tokens:4000, system:sys, messages:[{role:'user',content:user}] };
-    if (useSearch) body.tools = [{type:'web_search_20250305',name:'web_search'}];
+    let text = '';
 
-    const resp = await fetch('https://economics-proxy.stanbeal97.workers.dev', {
-      method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'x-api-key':apiKey,
-        'anthropic-version':'2023-06-01',
-      },
-      body:JSON.stringify(body)
-    });
-
-    clearInterval(timer);
-
-    if (!resp.ok) {
-      const err = await resp.json().catch(()=>({}));
-      throw new Error(err.error?.message || `API error ${resp.status} — check your API key has credits.`);
-    }
-
-    let data = await resp.json();
-
-    // Agentic loop: if the model used web search tools, keep calling until
-    // stop_reason is 'end_turn' and we have a final text response
-    let loopCount = 0;
-    while (data.stop_reason === 'tool_use' && loopCount < 8) {
-      loopCount++;
-      // Collect tool use blocks and build tool_result messages
-      const toolUseBlocks = data.content.filter(b => b.type === 'tool_use');
-      const toolResults = toolUseBlocks.map(tu => ({
-        type: 'tool_result',
-        tool_use_id: tu.id,
-        content: tu.input ? JSON.stringify(tu.input) : 'Search completed'
-      }));
-
-      // Continue the conversation with the tool results
-      const continueBody = {
-        model: body.model,
-        max_tokens: body.max_tokens,
-        system: body.system,
-        tools: body.tools,
-        messages: [
-          ...body.messages,
-          { role: 'assistant', content: data.content },
-          { role: 'user', content: toolResults }
-        ]
+    if (provider === 'gemini') {
+      // ── GEMINI 2.0 Flash — direct API call (no proxy needed, CORS allowed) ──
+      const geminiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/' + selectedModel + ':generateContent?key=' + apiKey;
+      const geminiBody = {
+        contents: [{ role: 'user', parts: [{ text: sys + '\n\n' + user }] }],
+        generationConfig: { maxOutputTokens: 8192, temperature: 0.7 }
       };
+      if (useSearch) geminiBody.tools = [{ googleSearch: {} }];
 
-      const continueResp = await fetch('https://economics-proxy.stanbeal97.workers.dev', {
+      const geminiResp = await fetch(geminiUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-        },
-        body: JSON.stringify(continueBody)
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(geminiBody)
       });
 
-      if (!continueResp.ok) {
-        const err = await continueResp.json().catch(()=>({}));
-        throw new Error(err.error?.message || 'Error during web search follow-up.');
-      }
-      data = await continueResp.json();
-    }
+      clearInterval(timer);
 
-    const text = data.content.filter(b=>b.type==='text').map(b=>b.text).join('\n');
+      if (!geminiResp.ok) {
+        const err = await geminiResp.json().catch(()=>({}));
+        throw new Error(err.error?.message || 'Gemini API error ' + geminiResp.status + ' — check your API key.');
+      }
+      const geminiData = await geminiResp.json();
+      text = (geminiData.candidates?.[0]?.content?.parts || [])
+        .filter(p => p.text).map(p => p.text).join('\n');
+
+    } else {
+      // ── Claude (via Cloudflare Worker proxy) ─────────────────────────────────
+      const body = { model:'claude-sonnet-4-6', max_tokens:4000, system:sys, messages:[{role:'user',content:user}] };
+      if (useSearch) body.tools = [{type:'web_search_20250305',name:'web_search'}];
+
+      const resp = await fetch('https://economics-proxy.stanbeal97.workers.dev', {
+        method:'POST',
+        headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01'},
+        body:JSON.stringify(body)
+      });
+
+      clearInterval(timer);
+
+      if (!resp.ok) {
+        const err = await resp.json().catch(()=>({}));
+        throw new Error(err.error?.message || 'API error ' + resp.status + ' — check your API key has credits.');
+      }
+
+      let data = await resp.json();
+      let loopCount = 0;
+      while (data.stop_reason === 'tool_use' && loopCount < 8) {
+        loopCount++;
+        const toolUseBlocks = data.content.filter(b => b.type === 'tool_use');
+        const toolResults = toolUseBlocks.map(tu => ({
+          type: 'tool_result', tool_use_id: tu.id,
+          content: tu.input ? JSON.stringify(tu.input) : 'Search completed'
+        }));
+        const continueBody = {
+          model: body.model, max_tokens: body.max_tokens, system: body.system, tools: body.tools,
+          messages: [...body.messages, {role:'assistant',content:data.content}, {role:'user',content:toolResults}]
+        };
+        const continueResp = await fetch('https://economics-proxy.stanbeal97.workers.dev', {
+          method:'POST',
+          headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01'},
+          body:JSON.stringify(continueBody)
+        });
+        if (!continueResp.ok) {
+          const err = await continueResp.json().catch(()=>({}));
+          throw new Error(err.error?.message || 'Error during web search follow-up.');
+        }
+        data = await continueResp.json();
+      }
+      text = data.content.filter(b=>b.type==='text').map(b=>b.text).join('\n');
+    }
     if (!text.trim()) throw new Error('Empty response — please try again.');
 
     renderPaper(text, pk);
