@@ -915,6 +915,99 @@ function renderP3Section(letter, topic, marks, qNum, raw) {
   return html + '</div></div>';
 }
 
+// Parse all question blocks from raw AI text
+function getQBlock(raw, n) {
+  const lines = raw.split('\n');
+  let start = -1, end = lines.length;
+  for (let i = 0; i < lines.length; i++) {
+    const s = lines[i].replace(/[*_#]/g,'').trim();
+    if (start === -1 && (s.startsWith('Question ' + n) || s === 'Q' + n)) { start = i + 1; }
+    else if (start !== -1 && (/^\s*[*_#]*\s*Question\s*\d/.test(lines[i]) || /^\s*Section\s+[ABC]/i.test(lines[i]))) { end = i; break; }
+  }
+  return start !== -1 ? lines.slice(start, end).join('\n') : '';
+  }
+
+function getFigure(block) {
+  // Extract everything before the first sub-part (a)(b)(c)
+  const beforeParts = block.split(/\n\s*[*_]*\s*\([a-e]\)/)[0];
+  // If it contains a table or figure, return the whole beforeParts block
+  // This ensures the prose intro + table are shown together in the figure box
+  const hasTable = (beforeParts.match(/\|/g)||[]).length >= 3;
+  const hasFigLabel = /(?:Figure|Table)\s*[\d:]/i.test(beforeParts);
+  const hasTableIntro = /(?:The following|The table|The data|The figure|The information below)/i.test(beforeParts);
+  if (hasTable || hasFigLabel || hasTableIntro) {
+    // Return everything from any Figure/Table label or intro sentence onwards
+    const figMatch = beforeParts.match(/(?:Figure\s*\d|Table\s*\d|The following|The table|The data|The figure|The information)[\s\S]*/i);
+    return figMatch ? figMatch[0].trim() : beforeParts.trim();
+  }
+  return '';
+  }
+
+  // Strip ALL figure/table content from a text block to avoid double-rendering.
+  // Removes: table rows, Figure/Table headers, Source lines, and any prose
+  // intro sentence that immediately precedes a table (e.g. "The following data shows...")
+function stripFigure(text) {
+  const lines = text.split('\n');
+  const out = [];
+  let inTable = false;
+  let tableFound = false;
+
+  // First pass: find if there is a table, and where it starts
+  let tableStartLine = -1;
+  for (let i = 0; i < lines.length; i++) {
+    const t = lines[i].trim();
+    if ((t.match(/\|/g)||[]).length >= 1) { tableStartLine = i; break; }
+  }
+
+  for (let i = 0; i < lines.length; i++) {
+    const t = lines[i].trim();
+    const hasPipe = (t.match(/\|/g)||[]).length >= 1;
+    const isSepRow = /^[\|\s\-:]+$/.test(t) && t.includes('-') && t.includes('|');
+
+    // Skip Figure/Table header lines
+    if (/^(?:Figure|Table)\s*[\d:]/i.test(t)) continue;
+    // Skip Source citation lines
+    if (/^\(?(?:Source|Adapted from|©)/i.test(t)) continue;
+
+    // Skip table rows
+    if (hasPipe || isSepRow) { inTable = true; tableFound = true; continue; }
+    // Skip blank line immediately after table
+    if (inTable && t === '') { inTable = false; continue; }
+    inTable = false;
+
+    // Skip prose intro lines that appear just before the table
+    // (e.g. "The following data shows..." or "The table below shows...")
+    if (tableStartLine > 0 && i < tableStartLine) {
+      if (/^(?:The following|The table|The data|The figure|The diagram|The information|Use the|Study the|Look at)/i.test(t)) continue;
+    }
+
+    out.push(lines[i]);
+  }
+  return out.join('\n').trim();
+  }
+
+function getIntro(block) {
+  // Get the question context sentence — stop before any figure, table, or sub-part
+  // Also stop before "The following data..." intro sentences (these belong in the figure box)
+  const lines = block.split('\n');
+  const intro = [];
+  for (const l of lines) {
+    const t = l.trim();
+    // Stop at sub-part labels
+    if (/^\s*[*_]*\([a-e]\)/.test(l)) break;
+    // Stop at Figure/Table headers
+    if (/^(?:Figure|Table)\s*[\d:]/i.test(t)) break;
+    // Stop at Source lines
+    if (/^\(?(?:Source|Adapted from)/i.test(t)) break;
+    // Stop at table rows
+    if ((t.match(/\|/g)||[]).length >= 2) break;
+    // Stop at "The following data/table shows..." — this is part of the figure
+    if (/^(?:The following|The table|The data|The figure|The diagram|The information below)/i.test(t)) break;
+    if (t) intro.push(t);
+  }
+  return intro.join(' ').replace(/^Question\s*\d+\s*/i,'').replace(/[*_#]/g,'').trim();
+  }
+
 // ── PAPERS 1 & 2 Section A ────────────────────────────────────────────────────
 // Real format (verified from 2023/2024 past papers):
 // 5 standalone questions each with their OWN embedded figure/data (NOT the main extracts)
@@ -953,98 +1046,6 @@ function renderP12SectionA(raw) {
     { n:5, parts: qStructures[1]  },  // (a)1MCQ (b)4written
   ];
 
-  // Parse all question blocks from raw AI text
-  function getQBlock(raw, n) {
-    const lines = raw.split('\n');
-    let start = -1, end = lines.length;
-    for (let i = 0; i < lines.length; i++) {
-      const s = lines[i].replace(/[*_#]/g,'').trim();
-      if (start === -1 && (s.startsWith('Question ' + n) || s === 'Q' + n)) { start = i + 1; }
-      else if (start !== -1 && (/^\s*[*_#]*\s*Question\s*\d/.test(lines[i]) || /^\s*Section\s+[ABC]/i.test(lines[i]))) { end = i; break; }
-    }
-    return start !== -1 ? lines.slice(start, end).join('\n') : '';
-  }
-
-  function getFigure(block) {
-    // Extract everything before the first sub-part (a)(b)(c)
-    const beforeParts = block.split(/\n\s*[*_]*\s*\([a-e]\)/)[0];
-    // If it contains a table or figure, return the whole beforeParts block
-    // This ensures the prose intro + table are shown together in the figure box
-    const hasTable = (beforeParts.match(/\|/g)||[]).length >= 3;
-    const hasFigLabel = /(?:Figure|Table)\s*[\d:]/i.test(beforeParts);
-    const hasTableIntro = /(?:The following|The table|The data|The figure|The information below)/i.test(beforeParts);
-    if (hasTable || hasFigLabel || hasTableIntro) {
-      // Return everything from any Figure/Table label or intro sentence onwards
-      const figMatch = beforeParts.match(/(?:Figure\s*\d|Table\s*\d|The following|The table|The data|The figure|The information)[\s\S]*/i);
-      return figMatch ? figMatch[0].trim() : beforeParts.trim();
-    }
-    return '';
-  }
-
-  // Strip ALL figure/table content from a text block to avoid double-rendering.
-  // Removes: table rows, Figure/Table headers, Source lines, and any prose
-  // intro sentence that immediately precedes a table (e.g. "The following data shows...")
-  function stripFigure(text) {
-    const lines = text.split('\n');
-    const out = [];
-    let inTable = false;
-    let tableFound = false;
-
-    // First pass: find if there is a table, and where it starts
-    let tableStartLine = -1;
-    for (let i = 0; i < lines.length; i++) {
-      const t = lines[i].trim();
-      if ((t.match(/\|/g)||[]).length >= 1) { tableStartLine = i; break; }
-    }
-
-    for (let i = 0; i < lines.length; i++) {
-      const t = lines[i].trim();
-      const hasPipe = (t.match(/\|/g)||[]).length >= 1;
-      const isSepRow = /^[\|\s\-:]+$/.test(t) && t.includes('-') && t.includes('|');
-
-      // Skip Figure/Table header lines
-      if (/^(?:Figure|Table)\s*[\d:]/i.test(t)) continue;
-      // Skip Source citation lines
-      if (/^\(?(?:Source|Adapted from|©)/i.test(t)) continue;
-
-      // Skip table rows
-      if (hasPipe || isSepRow) { inTable = true; tableFound = true; continue; }
-      // Skip blank line immediately after table
-      if (inTable && t === '') { inTable = false; continue; }
-      inTable = false;
-
-      // Skip prose intro lines that appear just before the table
-      // (e.g. "The following data shows..." or "The table below shows...")
-      if (tableStartLine > 0 && i < tableStartLine) {
-        if (/^(?:The following|The table|The data|The figure|The diagram|The information|Use the|Study the|Look at)/i.test(t)) continue;
-      }
-
-      out.push(lines[i]);
-    }
-    return out.join('\n').trim();
-  }
-
-  function getIntro(block) {
-    // Get the question context sentence — stop before any figure, table, or sub-part
-    // Also stop before "The following data..." intro sentences (these belong in the figure box)
-    const lines = block.split('\n');
-    const intro = [];
-    for (const l of lines) {
-      const t = l.trim();
-      // Stop at sub-part labels
-      if (/^\s*[*_]*\([a-e]\)/.test(l)) break;
-      // Stop at Figure/Table headers
-      if (/^(?:Figure|Table)\s*[\d:]/i.test(t)) break;
-      // Stop at Source lines
-      if (/^\(?(?:Source|Adapted from)/i.test(t)) break;
-      // Stop at table rows
-      if ((t.match(/\|/g)||[]).length >= 2) break;
-      // Stop at "The following data/table shows..." — this is part of the figure
-      if (/^(?:The following|The table|The data|The figure|The diagram|The information below)/i.test(t)) break;
-      if (t) intro.push(t);
-    }
-    return intro.join(' ').replace(/^Question\s*\d+\s*/i,'').replace(/[*_#]/g,'').trim();
-  }
 
   let html = '<div class="sec"><div class="sec-hdr"><span>Section A — Answer ALL questions</span><span class="sec-m">25 marks</span></div>'
            + '<p style="font-family:var(--font-ui);font-size:12px;color:var(--muted);margin-bottom:1.5rem;">Each question in this section has its own data. Answer all questions.</p>';
