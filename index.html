@@ -737,7 +737,8 @@ function renderPaper(text, pk) {
       '<div class="cover-datetime-left">' + dateStr + '<br>Time allowed: ' + s.time + '</div>' +
       '<div class="cover-paper-ref">' +
         '<div class="ref-code">' + s.code + '&nbsp;&nbsp;Paper reference</div>' +
-        '<div style="font-size:9pt;font-family:Arial">Total Marks</div>' +
+        '<div style="font-size:9pt;font-family:Arial;margin-bottom:2mm;">Total Marks</div>' +
+        '<div style="font-size:18pt;font-weight:bold;font-family:Arial;border:1.5px solid #000;display:inline-block;text-align:center;padding:2px 10px;min-width:44px;">' + s.total + '</div>' +
       '</div>' +
     '</div>' +
     '<div class="cover-subject"><div class="cover-subject-main">Economics A</div><div class="cover-subject-level">Advanced</div></div>' +
@@ -1100,9 +1101,9 @@ function renderP12SectionA(raw) {
       html += '<div class="ql"><div class="qt"><span class="qlbl">(' + p.l + ')</span>' + e(questionText) + '</div><div class="qm">(' + p.m + ')</div></div>';
 
       if (hasDiagDesc) {
-        html += '<div class="diagram-desc">' + e(diagDescMatch[0].replace(/^\[|\]$/g,'')) + '</div>';
-        html += '<div class="diagram-space"></div>';
-        html += alines(2);
+        // Blank box only — description as small note, no answer lines
+        html += '<div class="diag-space"></div>';
+        html += '<div style="font-size:8pt;font-family:Arial;color:#888;font-style:italic;margin-top:1mm;">' + e(diagDescMatch[0].replace(/^\[|\]$/g,'')) + '</div>';
       } else if (isMCQ) {
         const opts = embeddedOptions || ['A', 'B', 'C', 'D'];
         html += '<div class="mcq-boxes">';
@@ -1112,8 +1113,7 @@ function renderP12SectionA(raw) {
         });
         html += '</div>';
       } else if (isDiagram) {
-        html += '<div class="diagram-space"></div>';
-        html += alines(2);
+        html += '<div class="diag-space"></div>';
       } else if (isCalc) {
         html += alines(p.m + 1);
       } else {
@@ -1297,8 +1297,7 @@ function renderPart(p, cleaned, isMCQ, isDiagram, isCalc, embeddedOptions) {
     });
     html += '</div>';
   } else if (isDiagram) {
-    html += '<div class="diag-space">Space for diagram</div>';
-    html += answerLines(2);
+    html += '<div class="diag-space"></div>';
   } else if (isCalc) {
     html += answerLines(p.m + 2);
   } else {
@@ -1330,9 +1329,11 @@ function renderSectionAPages(raw, startPage) {
 
   qDefs.forEach(qd => {
     const block = getQBlock(raw, qd.n);
-    const figure = getFigure(block);
-    const blockNoFig = figure ? stripFigure(block) : block;
-    const ps = extractParts(block, qd.n);
+    // Q1 fallback: if block is empty (AI didn't label Q1), use everything before Q2
+    const effectiveBlock = (block && block.trim()) ? block : (qd.n === 1 ? (raw.split(/\nQuestion\s*2/i)[0] || raw) : '');
+    const figure = getFigure(effectiveBlock);
+    const blockNoFig = figure ? stripFigure(effectiveBlock) : effectiveBlock;
+    const ps = extractParts(effectiveBlock, qd.n);
     const psClean = extractParts(blockNoFig, qd.n);
 
     // Detect if AI swapped MCQ part
@@ -1436,7 +1437,7 @@ function renderSectionBPages(raw, extracts, startPage) {
       '<div class="q-part-text"><span class="q-part-label">6(' + d.l + ')</span> ' + e(txt) + '</div>' +
       '<div class="q-part-marks">(' + d.m + ')</div>' +
     '</div>';
-    if (isDiagram) partPage += '<div class="diag-space">Space for diagram</div>';
+    // Section B: always answer lines (candidate writes response with diagram embedded)
     partPage += answerLines(d.m);
 
     pages.push(makePage(partPage, pageNum, false));
@@ -1494,27 +1495,50 @@ function renderSectionCPages(raw, startPage) {
     'Indicate which question you are answering by marking a cross in the box next to the question number.<br>' +
     'You are advised to spend 30 minutes on this section.</div>';
 
-  [{ num: 7, text: fb7 }, { num: 8, text: fb8 }].forEach(essay => {
-    const parts = splitEssayParts(essay.text);
-    const essayContent = (essay.num === 7 ? headerContent : '') +
-      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4mm;">' +
-        '<div style="border:1.5px solid #000;width:16px;height:16px;display:inline-block;"></div>' +
-        '<div style="font-family:Arial;font-size:11pt;font-weight:bold;">Question ' + essay.num + '</div>' +
-      '</div>' +
-      (parts.stem ? '<div class="essay-stem">' + e(parts.stem) + '</div>' : '') +
-      '<div class="q-part-row" style="margin-bottom:4mm;">' +
-        '<div class="q-part-text essay-q-text">' + e(parts.question) + '</div>' +
-        '<div class="q-part-marks">(25)</div>' +
-      '</div>' +
-      answerLines(25);
+  // Verified Edexcel format: BOTH questions shown together with tick boxes on one page,
+  // then answer space on subsequent pages.
+  const p7 = splitEssayParts(fb7);
+  const p8 = splitEssayParts(fb8);
 
-    pages.push(makePage(essayContent, pageNum, false));
-    pageNum++;
-    // Continuation page for 25-mark essay
-    pages.push(makePage(answerLines(30), pageNum, false));
-    pageNum++;
-  });
+  function essayQBlock(num, parts) {
+    return '<div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:5mm;">' +
+      '<div style="border:1.5px solid #000;width:16px;height:16px;flex-shrink:0;margin-top:2px;"></div>' +
+      '<div style="flex:1;">' +
+        '<div style="font-family:Arial;font-size:11pt;font-weight:bold;margin-bottom:2mm;">Question ' + num + '</div>' +
+        (parts.stem ? '<div style="font-family:Arial;font-size:10.5pt;line-height:1.5;margin-bottom:2mm;">' + e(parts.stem) + '</div>' : '') +
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">' +
+          '<div style="font-family:Arial;font-size:10.5pt;line-height:1.5;flex:1;">' + e(parts.question) + '</div>' +
+          '<div style="font-family:Arial;font-size:10pt;font-weight:bold;border:1px solid #000;padding:1px 5px;white-space:nowrap;">(25)</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }
 
+  // Page: Section C header + BOTH essay questions shown together (no answer space yet)
+  const bothQsPage = headerContent +
+    essayQBlock(7, p7) +
+    '<div style="border-top:1px solid #ccc;margin:4mm 0;"></div>' +
+    essayQBlock(8, p8);
+  pages.push(makePage(bothQsPage, pageNum, false));
+  pageNum++;
+
+  // Answer pages: tick-box indicator at top then answer lines
+  const ansTickRow = '<div style="font-family:Arial;font-size:10pt;font-style:italic;margin-bottom:3mm;">' +
+    'Indicate which question you are answering by marking a cross in the box.</div>' +
+    '<div style="display:flex;gap:3rem;margin-bottom:6mm;">' +
+      '<div style="display:flex;align-items:center;gap:8px;font-family:Arial;font-size:10.5pt;">' +
+        '<div style="border:1.5px solid #000;width:16px;height:16px;"></div>&nbsp;Question 7</div>' +
+      '<div style="display:flex;align-items:center;gap:8px;font-family:Arial;font-size:10.5pt;">' +
+        '<div style="border:1.5px solid #000;width:16px;height:16px;"></div>&nbsp;Question 8</div>' +
+    '</div>';
+  pages.push(makePage(ansTickRow + answerLines(42), pageNum, false));
+  pageNum++;
+  pages.push(makePage(answerLines(52), pageNum, false));
+  pageNum++;
+  pages.push(makePage(answerLines(52), pageNum, false));
+  pageNum++;
+
+  
   pages.push(makePage('<div style="font-family:Arial;font-weight:bold;font-size:10pt;text-align:right;border-top:2px solid #000;padding-top:3mm;">TOTAL FOR SECTION C = 25 MARKS</div><div style="font-family:Arial;font-weight:bold;font-size:10pt;text-align:right;margin-top:2mm;">TOTAL FOR PAPER = 100 MARKS</div>', pageNum, true));
   pageNum++;
 
@@ -1658,7 +1682,7 @@ IMPORTANT rules from real papers:
 - Calculation questions always say "You are advised to show your working" or "Calculate... Show your working"
 - Written 4-mark questions usually say "With reference to the information provided, explain one [reason/impact/likely effect]"
 - MCQ options are listed as A B C D each on a separate line, sometimes with a two-column table format
-- CRITICAL: MCQ (multiple choice) sub-parts are ALWAYS worth exactly 1 mark. Never write a MCQ sub-part worth 2, 3 or 4 marks. Higher mark sub-parts must use written, calculation or diagram question types
+- CRITICAL: MCQ (multiple choice) sub-parts are ALWAYS worth exactly 1 mark. Never write a MCQ sub-part worth 2, 3 or 4 marks. Higher mark sub-parts must use written, calculation or diagram question types\n- CRITICAL: NEVER write MCQ questions where options refer to labelled areas on a diagram (e.g. Area W, Area X, W+Z etc). All MCQ options must be plain text words or numbers. Diagram-area MCQs cannot be rendered and must not be used.
 
 Ensure variety across Q1-Q5: include at least one diagram question, at least one calculation, and at least two written explain questions.
 Do NOT use "Assess", "Evaluate" or "Discuss" in Section A.
