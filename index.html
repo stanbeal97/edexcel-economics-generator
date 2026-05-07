@@ -72,58 +72,343 @@
   .dot.ok { background: #2e7d32; }
   @keyframes pulse { 0%,100%{opacity:1}50%{opacity:.4} }
 
-  /* EXAM PAPER */
-  .exam-paper { width: 100%; max-width: 800px; background: white; box-shadow: 0 4px 24px rgba(0,0,0,.1); border-radius: 4px; overflow: hidden; font-family: var(--font-body); }
-  .ph-band { background: var(--navy); color: white; padding: 1.5rem 2.5rem; }
-  .ph-label { font-family: var(--font-ui); font-size: 11px; letter-spacing: 2px; text-transform: uppercase; opacity: .7; margin-bottom: 8px; }
-  .ph-title { font-size: 24px; font-weight: bold; margin-bottom: 4px; }
-  .ph-sub { font-size: 16px; opacity: .9; }
-  .pm-bar { background: var(--accent); color: white; padding: .6rem 2.5rem; display: flex; gap: 2rem; flex-wrap: wrap; font-family: var(--font-ui); font-size: 12px; font-weight: 500; }
-  .pb { padding: 2rem 2.5rem; }
-  .inst { border: 1.5px solid var(--navy); padding: .75rem 1rem; margin-bottom: 2rem; font-family: var(--font-ui); font-size: 12px; }
-  .inst-t { font-weight: 700; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
-  .inst ul { padding-left: 1.25rem; }
-  .inst li { margin-bottom: 3px; }
-  .sec { margin-bottom: 2.5rem; }
-  .sec-hdr { background: var(--navy); color: white; padding: 10px 16px; font-family: var(--font-ui); font-size: 14px; font-weight: 600; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; }
-  .sec-m { font-size: 12px; opacity: .8; font-weight: 400; }
-  .extract { border: 1px solid #ccc; padding: 1rem 1.25rem; margin-bottom: 1.25rem; background: #fafaf8; }
-  .ext-lbl { font-family: var(--font-ui); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--navy); margin-bottom: 8px; }
-  .ext-title { font-size: 15px; font-weight: bold; margin-bottom: 8px; }
-  .ext-body { font-size: 13px; line-height: 1.75; white-space: pre-wrap; }
-  .ext-src { font-size: 11px; color: var(--muted); font-style: italic; margin-top: 10px; text-align: right; }
-  .extracts-wrapper { margin-bottom: 1.5rem; }
-  .diagram-desc { background: #f0f4ff; border: 1px dashed #8899cc; border-radius: 4px; padding: 8px 12px; margin: 8px 0 4px; font-family: var(--font-ui); font-size: 11px; color: #445; font-style: italic; }
-  .diagram-desc::before { content: "Diagram: "; font-weight: 600; font-style: normal; }
-  .essay-stem { font-size: 13px; line-height: 1.7; color: var(--text); margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid var(--border); font-family: var(--font-body); }
-  .essay-q { font-size: 14px; font-weight: 500; }
-  .sa-figure { background: #f7f7f5; border: 1px solid var(--border); border-radius: 4px; padding: 10px 14px; margin: 8px 0 12px; font-size: 12px; font-family: var(--font-ui); }
-  .diagram-space { border: 1px solid var(--border); height: 180px; margin: 8px 0 4px; background: #fafafa; display: flex; align-items: center; justify-content: center; color: var(--muted); font-family: var(--font-ui); font-size: 12px; font-style: italic; }
-  .diagram-space::after { content: 'Space for diagram'; }
-  .mcq-boxes { display: flex; flex-direction: column; gap: 8px; padding: 10px 0 8px 4px; font-family: var(--font-ui); font-size: 13px; }
-  .mcq-opt { display: flex; align-items: center; gap: 10px; line-height: 1.4; }
-  .mcq-box { width: 16px; height: 16px; border: 1.5px solid var(--text); display: inline-block; flex-shrink: 0; }
-  .calc-space { border-left: 2px solid var(--border); padding-left: 8px; margin: 4px 0; }
-  .mcq-opt { display: flex; align-items: center; gap: 6px; cursor: default; }
-  .md-table { border-collapse: collapse; width: 100%; margin: 8px 0; font-family: var(--font-ui); font-size: 12px; }
-  .md-table th { background: var(--navy); color: white; padding: 6px 10px; text-align: left; font-weight: 600; }
-  .md-table td { padding: 5px 10px; border-bottom: 1px solid var(--border); }
-  .md-table tr:nth-child(even) td { background: #f7f7f5; }
-  .md-list { padding-left: 1.25rem; margin: 6px 0; font-size: 13px; line-height: 1.7; }
-  .qg { margin-bottom: 1.5rem; }
-  .qs { font-family: var(--font-ui); font-size: 13px; font-weight: 600; color: var(--navy); border-bottom: 1px solid var(--border); padding-bottom: 4px; margin-bottom: 8px; }
-  .qi { margin-bottom: 14px; }
-  .ql { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; font-size: 13.5px; line-height: 1.65; }
-  .qt { flex: 1; }
-  .qm { font-family: var(--font-ui); font-size: 12px; font-weight: 700; color: var(--accent); white-space: nowrap; border: 1px solid var(--accent); border-radius: 3px; padding: 1px 6px; }
-  .qlbl { font-weight: bold; margin-right: 4px; }
-  .aline { border-bottom: 1px solid #ccc; margin-top: 5px; height: 20px; }
-  .qwc { font-family: var(--font-ui); font-size: 11px; color: var(--muted); font-style: italic; margin-top: 5px; }
-  .choice-box { background: #fff8e1; border: 1px solid #ffe082; padding: 8px 12px; border-radius: 4px; font-family: var(--font-ui); font-size: 13px; font-weight: 600; margin-bottom: 1rem; }
-  .tick-row { font-family: var(--font-ui); font-size: 12px; color: var(--muted); display: flex; gap: 2rem; margin-bottom: 1rem; }
-  .tick-opt { display: flex; align-items: center; gap: 6px; }
-  .tick-box { width: 14px; height: 14px; border: 1px solid #aaa; display: inline-block; }
-  .total-bar { background: var(--navy); color: white; padding: 10px 2.5rem; display: flex; justify-content: space-between; font-family: var(--font-ui); font-size: 13px; }
+  /* ── EXAM PAPER: A4 PAGE SIMULATION ── */
+
+  /* Paper area: grey background, papers shown as A4 sheets */
+  .paper-area { flex: 1; padding: 2rem 2rem; overflow-y: auto; display: flex; flex-direction: column; align-items: center; gap: 0; background: #888; }
+
+  /* Each A4 page */
+  .a4-page {
+    width: 794px;          /* 210mm at 96dpi */
+    min-height: 1123px;    /* 297mm at 96dpi */
+    background: white;
+    box-shadow: 0 4px 16px rgba(0,0,0,.4);
+    margin-bottom: 12px;
+    position: relative;
+    font-family: 'Arial', sans-serif;
+    font-size: 11pt;
+    color: #000;
+    display: flex;
+    flex-direction: row;
+  }
+
+  /* Left margin stripe — "DO NOT WRITE IN THIS AREA" */
+  .page-margin {
+    width: 28px;
+    min-height: 1123px;
+    background: repeating-linear-gradient(
+      45deg,
+      #888 0px, #888 2px,
+      #bbb 2px, #bbb 8px
+    );
+    flex-shrink: 0;
+    position: relative;
+  }
+  .page-margin-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-90deg);
+    white-space: nowrap;
+    font-size: 7pt;
+    font-weight: bold;
+    letter-spacing: 1px;
+    color: white;
+    font-family: Arial, sans-serif;
+  }
+
+  /* Page content area */
+  .page-content { flex: 1; padding: 18mm 14mm 18mm 10mm; min-height: 1123px; box-sizing: border-box; }
+
+  /* Page number footer */
+  .page-footer {
+    position: absolute;
+    bottom: 10mm;
+    right: 14mm;
+    font-size: 9pt;
+    font-family: Arial, sans-serif;
+    border: 1px solid #000;
+    padding: 2px 8px;
+  }
+  .page-watermark {
+    position: absolute;
+    bottom: 10mm;
+    left: 36px;
+    font-size: 8pt;
+    font-family: Arial, sans-serif;
+    color: #666;
+  }
+  .turn-over {
+    position: absolute;
+    bottom: 10mm;
+    right: 80px;
+    font-size: 9pt;
+    font-family: Arial, sans-serif;
+    font-weight: bold;
+  }
+
+  /* ── COVER PAGE ── */
+  .cover-check-bar {
+    border: 1px solid #000;
+    padding: 6px 10px;
+    font-size: 9pt;
+    margin-bottom: 6mm;
+    font-family: Arial, sans-serif;
+  }
+  .cover-candidate-boxes {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    margin-bottom: 4mm;
+  }
+  .cover-candidate-boxes > div {
+    border: 1px solid #000;
+    padding: 4px 6px;
+    min-height: 28px;
+    font-size: 9pt;
+    font-family: Arial, sans-serif;
+  }
+  .cover-candidate-label { font-weight: bold; font-size: 8pt; display: block; }
+  .cover-num-boxes {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    margin-bottom: 6mm;
+  }
+  .cover-num-box {
+    border: 1px solid #000;
+    padding: 4px 6px;
+    font-size: 9pt;
+    font-family: Arial, sans-serif;
+  }
+  .cover-num-cells {
+    display: flex;
+    gap: 2px;
+    margin-top: 4px;
+  }
+  .cover-num-cell {
+    width: 20px; height: 24px;
+    border: 1px solid #000;
+    display: inline-block;
+  }
+  .cover-edexcel-label {
+    font-family: Arial, sans-serif;
+    font-size: 10pt;
+    font-weight: bold;
+    margin-bottom: 2mm;
+  }
+  .cover-datetime-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    border-top: 1px solid #000;
+    border-bottom: 1px solid #000;
+    padding: 3mm 0;
+    margin-bottom: 3mm;
+  }
+  .cover-datetime-left { font-size: 10pt; font-family: Arial, sans-serif; font-weight: bold; }
+  .cover-paper-ref { text-align: right; font-family: Arial, sans-serif; }
+  .cover-paper-ref .ref-code { font-size: 14pt; font-weight: bold; }
+  .cover-paper-ref .ref-label { font-size: 8pt; color: #555; }
+  .cover-paper-ref .ref-marks { font-size: 8pt; }
+  .cover-subject { font-family: Arial, sans-serif; margin-bottom: 1mm; }
+  .cover-subject-main { font-size: 22pt; font-weight: bold; line-height: 1.1; }
+  .cover-subject-level { font-size: 12pt; font-style: italic; }
+  .cover-paper-title { font-size: 14pt; font-weight: bold; font-family: Arial, sans-serif; margin-bottom: 4mm; }
+  .cover-calculator { font-family: Arial, sans-serif; font-size: 10pt; margin-bottom: 6mm; }
+  .cover-boxes { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4mm; }
+  .cover-box { border: 1px solid #000; padding: 3mm; }
+  .cover-box-title { font-weight: bold; font-size: 10pt; font-family: Arial, sans-serif; text-decoration: underline; margin-bottom: 2mm; }
+  .cover-box ul { padding-left: 4mm; font-size: 9.5pt; font-family: Arial, sans-serif; }
+  .cover-box li { margin-bottom: 2mm; list-style: disc; }
+
+  /* ── SECTION HEADERS ── */
+  .sec-hdr-pg {
+    font-family: Arial, sans-serif;
+    font-size: 11pt;
+    font-weight: bold;
+    margin-bottom: 4mm;
+    padding-bottom: 2mm;
+    border-bottom: 1px solid #000;
+  }
+  .sec-subhdr {
+    font-family: Arial, sans-serif;
+    font-size: 9.5pt;
+    margin-bottom: 4mm;
+    line-height: 1.5;
+  }
+
+  /* ── EXTRACTS ── */
+  .extract {
+    border: 1px solid #000;
+    margin-bottom: 4mm;
+    font-family: Arial, sans-serif;
+  }
+  .ext-lbl {
+    font-size: 9pt;
+    font-weight: bold;
+    padding: 2mm 3mm 1mm;
+    border-bottom: 1px solid #ccc;
+  }
+  .ext-title {
+    font-size: 11pt;
+    font-weight: bold;
+    padding: 1mm 3mm;
+  }
+  .ext-body {
+    font-size: 10pt;
+    line-height: 1.55;
+    padding: 2mm 3mm;
+  }
+  .ext-body span { display: inline; }
+  .ext-body br { display: none; }
+  .ext-src {
+    font-size: 8.5pt;
+    color: #444;
+    padding: 1mm 3mm 2mm;
+    font-style: italic;
+  }
+  .ext-lineno {
+    text-align: right;
+    font-size: 8pt;
+    color: #666;
+    padding: 0 3mm;
+  }
+
+  /* ── QUESTIONS ── */
+  .q-block { margin-bottom: 6mm; }
+  .q-num {
+    font-family: Arial, sans-serif;
+    font-size: 11pt;
+    font-weight: bold;
+    margin-bottom: 2mm;
+  }
+  .q-part { margin-bottom: 5mm; }
+  .q-part-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 2mm;
+  }
+  .q-part-text {
+    flex: 1;
+    font-family: Arial, sans-serif;
+    font-size: 10.5pt;
+    line-height: 1.45;
+  }
+  .q-part-label { font-weight: bold; margin-right: 3px; }
+  .q-part-marks {
+    font-family: Arial, sans-serif;
+    font-size: 10pt;
+    font-weight: bold;
+    white-space: nowrap;
+    border: 1px solid #000;
+    padding: 1px 5px;
+    min-width: 28px;
+    text-align: center;
+  }
+
+  /* Answer lines — dotted like real paper */
+  .ans-lines { margin-top: 2mm; }
+  .ans-line {
+    border-bottom: 1px dotted #999;
+    height: 7mm;
+    margin-bottom: 0;
+  }
+
+  /* Diagram space */
+  .diag-space {
+    border: 1px solid #ccc;
+    height: 65mm;
+    margin: 3mm 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: Arial, sans-serif;
+    font-size: 9pt;
+    color: #aaa;
+    font-style: italic;
+  }
+
+  /* MCQ options */
+  .mcq-list { margin-top: 3mm; }
+  .mcq-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 3mm;
+    font-family: Arial, sans-serif;
+    font-size: 10.5pt;
+  }
+  .mcq-cross-box {
+    width: 14px; height: 14px;
+    border: 1.5px solid #000;
+    display: inline-block;
+    flex-shrink: 0;
+  }
+  .mcq-letter { font-weight: bold; min-width: 16px; }
+
+  /* Total mark box for Section A */
+  .q-total {
+    border: 1px solid #000;
+    padding: 2mm 4mm;
+    font-family: Arial, sans-serif;
+    font-size: 9.5pt;
+    font-weight: bold;
+    text-align: right;
+    margin-top: 3mm;
+  }
+
+  /* Section B figure box */
+  .sa-figure {
+    border: 1px solid #ccc;
+    padding: 3mm;
+    margin: 3mm 0 4mm;
+    font-family: Arial, sans-serif;
+    font-size: 10pt;
+  }
+
+  /* Tables */
+  .md-table { border-collapse: collapse; width: 100%; margin: 2mm 0; font-family: Arial, sans-serif; font-size: 10pt; }
+  .md-table th { background: #ddd; padding: 3px 8px; text-align: left; font-weight: bold; border: 1px solid #000; }
+  .md-table td { padding: 3px 8px; border: 1px solid #000; }
+
+  /* Section C essays */
+  .essay-stem { font-family: Arial, sans-serif; font-size: 10.5pt; line-height: 1.5; margin-bottom: 3mm; }
+  .essay-q-text { font-family: Arial, sans-serif; font-size: 10.5pt; font-weight: bold; margin-bottom: 2mm; }
+  .essay-tick-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4mm;
+    font-family: Arial, sans-serif;
+    font-size: 10pt;
+  }
+
+  /* ── PRINT ── */
+  @media print {
+    .topbar, .sidebar, .toolbar { display: none !important; }
+    .layout { display: block; }
+    .paper-area { padding: 0; background: white; gap: 0; }
+    .a4-page {
+      width: 210mm;
+      min-height: 297mm;
+      box-shadow: none;
+      margin: 0;
+      page-break-after: always;
+      break-after: page;
+    }
+    .page-content { padding: 15mm 14mm 25mm 8mm; }
+    .page-margin { min-height: 297mm; }
+    .turn-over { display: block; }
+  }
+
+  /* ── LISTS ── */
+  .md-list { padding-left: 5mm; margin: 2mm 0; font-family: Arial, sans-serif; font-size: 10pt; line-height: 1.6; }
+
+  /* Choice instruction */
+  .choice-instr { font-family: Arial, sans-serif; font-size: 10pt; font-style: italic; margin-bottom: 4mm; }
 
   @media print {
     .topbar, .sidebar, .toolbar { display: none !important; }
@@ -421,12 +706,29 @@ function inlineMd(text) {
 
 
 
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+// Answer lines matching real 2024 Edexcel paper line counts
+function answerLines(marks) {
+  const map = {1:0, 2:6, 3:10, 4:16, 5:24, 8:37, 9:28, 10:35, 12:40, 15:50, 25:60, 40:80};
+  const n = map[marks] !== undefined ? map[marks] : Math.round(marks * 3.5);
+  if (n === 0) return '';
+  return '<div class="ans-lines">' + Array(n).fill('<div class="ans-line"></div>').join('') + '</div>';
+}
+
+function makePage(pageContent, pageNum, isLast) {
+  return '<div class="a4-page">' +
+    '<div class="page-margin"><span class="page-margin-text">DO NOT WRITE IN THIS AREA</span></div>' +
+    '<div class="page-content">' + pageContent + '</div>' +
+    (isLast ? '' : '<div class="turn-over">Turn over &#9654;</div>') +
+    '<div class="page-footer">' + pageNum + '</div>' +
+    '</div>';
+}
+
 // ─── RENDER ───────────────────────────────────────────────────────────────────
 function renderPaper(text, pk) {
   rawText = text;
   const s = STRUCTS[pk];
 
-  // Split text into sections
   const exM  = text.match(/EXTRACTS?([\s\S]*?)(?=SECTION A|$)/i);
   const saM  = text.match(/SECTION A[^\n]*([\s\S]*?)(?=SECTION B|$)/i);
   const sbM  = text.match(/SECTION B[^\n]*([\s\S]*?)(?=SECTION C|$)/i);
@@ -438,52 +740,77 @@ function renderPaper(text, pk) {
   const scRaw = (scM||['',''])[1].trim();
 
   const extracts = buildExtracts(exRaw);
-  let body = '';
+
+  // ── COVER PAGE ──
+  const today = new Date();
+  const dateStr = today.toLocaleDateString('en-GB', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+  const coverContent =
+    '<div class="cover-check-bar">Please check the examination details below before entering your candidate information</div>' +
+    '<div class="cover-candidate-boxes">' +
+      '<div><span class="cover-candidate-label">Candidate surname</span><br></div>' +
+      '<div><span class="cover-candidate-label">Other names</span><br></div>' +
+    '</div>' +
+    '<div class="cover-num-boxes">' +
+      '<div class="cover-num-box"><span class="cover-candidate-label">Centre Number</span><div class="cover-num-cells">' + Array(5).fill('<span class="cover-num-cell"></span>').join('') + '</div></div>' +
+      '<div class="cover-num-box"><span class="cover-candidate-label">Candidate Number</span><div class="cover-num-cells">' + Array(4).fill('<span class="cover-num-cell"></span>').join('') + '</div></div>' +
+    '</div>' +
+    '<div class="cover-edexcel-label">Pearson Edexcel Level 3 GCE</div>' +
+    '<div class="cover-datetime-bar">' +
+      '<div class="cover-datetime-left">' + dateStr + '<br>Morning (Time: ' + s.time + ')</div>' +
+      '<div class="cover-paper-ref">' +
+        '<div class="ref-code">' + s.code + '&nbsp;&nbsp;Paper reference</div>' +
+        '<div style="font-size:9pt;font-family:Arial">Total Marks</div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="cover-subject"><div class="cover-subject-main">Economics A</div><div class="cover-subject-level">Advanced</div></div>' +
+    '<div class="cover-paper-title">' + s.label.toUpperCase() + '</div>' +
+    '<div class="cover-calculator"><strong>You must have a calculator.</strong></div>' +
+    '<div class="cover-boxes">' +
+      '<div class="cover-box"><div class="cover-box-title">Instructions</div><ul>' +
+        '<li>Use black ink or ball-point pen.</li>' +
+        '<li>Fill in the boxes at the top of this page with your name, centre number and candidate number.</li>' +
+        '<li>There are three sections in this question paper. Answer all questions from Section A and Section B. Answer one question from Section C.</li>' +
+        '<li>Answer the questions in the spaces provided — there may be more space than you need.</li>' +
+        '<li>Calculators may be used.</li>' +
+      '</ul></div>' +
+      '<div class="cover-box"><div class="cover-box-title">Information</div><ul>' +
+        '<li>The total mark for this paper is ' + s.total + '.</li>' +
+        '<li>The marks for each question are shown in brackets — use this as a guide as to how much time to spend on each question.</li>' +
+      '</ul></div>' +
+      '<div class="cover-box"><div class="cover-box-title">Advice</div><ul>' +
+        '<li>Read each question carefully before you start to answer it.</li>' +
+        '<li>Try to answer every question.</li>' +
+        '<li>Check your answers if you have time at the end.</li>' +
+      '</ul></div>' +
+    '</div>';
+
+  let pages = [makePage(coverContent, 1, false)];
+  let pageNum = 2;
 
   if (s.type === 'p3') {
-    // PAPER 3: Two sections, each with (a)(b)(c) compulsory then ONE of (d)/(e)
-    body = renderP3Section('A', 'Microeconomics', 50, 1, saRaw)
-         + renderP3Section('B', 'Macroeconomics', 50, 2, sbRaw);
+    const p3r = renderP3Pages(saRaw, sbRaw, pageNum);
+    pages = pages.concat(p3r.pages);
+    pageNum = p3r.nextPage;
   } else {
-    // PAPERS 1 & 2: Section A, B, C
-    body = renderP12SectionA(saRaw)
-         + renderP12SectionB(sbRaw, extracts)
-         + renderP12SectionC(scRaw);
+    const saR = renderSectionAPages(saRaw, pageNum);
+    pages = pages.concat(saR.pages);
+    pageNum = saR.nextPage;
+
+    const sbR = renderSectionBPages(sbRaw, extracts, pageNum);
+    pages = pages.concat(sbR.pages);
+    pageNum = sbR.nextPage;
+
+    const scR = renderSectionCPages(scRaw, pageNum);
+    pages = pages.concat(scR.pages);
+    pageNum = scR.nextPage;
   }
 
-  const p3inst = s.type === 'p3'
-    ? '<li>In Section A, answer all questions 1(a) to 1(c) and then <strong>ONE</strong> question from 1(d) or 1(e).</li><li>In Section B, answer all questions 2(a) to 2(c) and then <strong>ONE</strong> question from 2(d) or 2(e).</li>'
-    : '<li>Answer <strong>ALL</strong> questions in Sections A and B, and <strong>ONE</strong> question from Section C.</li>';
+  // Remove "Turn over" from last page
+  if (pages.length > 0) {
+    pages[pages.length-1] = pages[pages.length-1].replace('<div class="turn-over">Turn over &#9654;</div>', '');
+  }
 
-  document.getElementById('paperArea').innerHTML = `
-  <div class="exam-paper" id="examPaper">
-    <div class="ph-band">
-      <div class="ph-label">Pearson Edexcel · GCE A Level</div>
-      <div class="ph-title">Economics A</div>
-      <div class="ph-sub">${s.label}</div>
-    </div>
-    <div class="pm-bar">
-      <span>Paper: ${s.code}</span>
-      <span>Time: ${s.time}</span>
-      <span>Total marks: ${s.total}</span>
-      <span>${s.themes}</span>
-    </div>
-    <div class="pb">
-      <div class="inst">
-        <div class="inst-t">Instructions to Candidates</div>
-        <ul>
-          <li>Use <strong>black</strong> ink or ball-point pen.</li>
-          ${p3inst}
-          <li>Answer questions in the spaces provided — there may be more space than you need.</li>
-          <li>Show all working where numerical answers are required.</li>
-          <li>You may use a calculator.</li>
-          <li>Marks for each question are shown in brackets. Total: <strong>${s.total}</strong> marks.</li>
-        </ul>
-      </div>
-      ${body}
-    </div>
-    <div class="total-bar"><span>TOTAL FOR PAPER: ${s.total} MARKS</span><span>${s.code}</span></div>
-  </div>`;
+  document.getElementById('paperArea').innerHTML = '<div id="examPaper">' + pages.join('') + '</div>';
 }
 
 function buildExtracts(raw) {
@@ -972,6 +1299,278 @@ function cleanEssay(txt) {
 }
 
 // ─── GENERATE (API CALL) ─────────────────────────────────────────────────────
+
+// ─── PAGE-BASED SECTION RENDERERS ─────────────────────────────────────────────
+
+// Render a question part (shared by all section renderers)
+function renderPart(p, cleaned, isMCQ, isDiagram, isCalc, embeddedOptions) {
+  let html = '<div class="q-part">';
+  html += '<div class="q-part-row">';
+  html += '<div class="q-part-text"><span class="q-part-label">(' + p.l + ')</span> ' + e(cleaned) + '</div>';
+  html += '<div class="q-part-marks">(' + p.m + ')</div>';
+  html += '</div>';
+
+  if (isMCQ) {
+    const opts = embeddedOptions || ['A', 'B', 'C', 'D'];
+    html += '<div class="mcq-list">';
+    opts.forEach((opt, i) => {
+      const letter = String.fromCharCode(65 + i);
+      html += '<div class="mcq-row"><span class="mcq-cross-box"></span><span class="mcq-letter">' + letter + '</span> ' +
+        (embeddedOptions ? e(opt) : '') + '</div>';
+    });
+    html += '</div>';
+  } else if (isDiagram) {
+    html += '<div class="diag-space">Space for diagram</div>';
+    html += answerLines(2);
+  } else if (isCalc) {
+    html += answerLines(p.m + 2);
+  } else {
+    html += answerLines(p.m);
+  }
+  html += '</div>';
+  return html;
+}
+
+// ── SECTION A ──────────────────────────────────────────────────────────────────
+function renderSectionAPages(raw, startPage) {
+  const pages = [];
+  let pageNum = startPage;
+
+  // Section A header page
+  let currentPageContent =
+    '<div class="sec-hdr-pg">SECTION A</div>' +
+    '<div class="sec-subhdr">Answer ALL questions. Write your answers in the spaces provided.<br>' +
+    'Some questions must be answered with a cross in a box &#9632;. If you change your mind about an answer, put a line through the box and then mark your new answer with a cross &#10006;.<br>' +
+    'You are advised to spend 30 minutes on this section.</div>';
+
+  const qDefs = [
+    { n:1, parts: [{l:'a',m:4,type:'written'},{l:'b',m:1,type:'mcq'}] },
+    { n:2, parts: [{l:'a',m:2,type:'calculate'},{l:'b',m:2,type:'written'},{l:'c',m:1,type:'mcq'}] },
+    { n:3, parts: [{l:'a',m:4,type:'diagram'},{l:'b',m:1,type:'mcq'}] },
+    { n:4, parts: [{l:'a',m:2,type:'calculate'},{l:'b',m:2,type:'calculate'},{l:'c',m:1,type:'mcq'}] },
+    { n:5, parts: [{l:'a',m:1,type:'mcq'},{l:'b',m:4,type:'written'}] }
+  ];
+
+  qDefs.forEach(qd => {
+    const block = getQBlock(raw, qd.n);
+    const figure = getFigure(block);
+    const blockNoFig = figure ? stripFigure(block) : block;
+    const ps = extractParts(block, qd.n);
+    const psClean = extractParts(blockNoFig, qd.n);
+
+    // Detect if AI swapped MCQ part
+    function detectContentType(txt) {
+      if (!txt) return 'written';
+      if (/which one|which of the following|correct answer|best describes|most likely/i.test(txt) || /^[A-D]\s/.test(txt.trim())) return 'mcq';
+      if (/draw|sketch|label|diagram|curve|axis/i.test(txt)) return 'diagram';
+      if (/calculat|show your working|percentage change|change in|how much/i.test(txt)) return 'calculate';
+      return 'written';
+    }
+
+    const parsedParts = qd.parts.map(p => ({
+      ...p, txt: cleanPart(psClean[p.l] || ps[p.l] || '[' + p.m + '-mark question]', p.l)
+    }));
+    const mcqDefIdx = qd.parts.findIndex(p => p.type === 'mcq');
+    const mcqContentIdx = parsedParts.findIndex(p => detectContentType(p.txt) === 'mcq');
+    if (mcqDefIdx !== -1 && mcqContentIdx !== -1 && mcqDefIdx !== mcqContentIdx) {
+      const tmp = parsedParts[mcqDefIdx].txt;
+      parsedParts[mcqDefIdx].txt = parsedParts[mcqContentIdx].txt;
+      parsedParts[mcqContentIdx].txt = tmp;
+    }
+
+    let qHtml = '<div class="q-block"><div class="q-num">Question ' + qd.n + '</div>';
+    if (figure) qHtml += '<div class="sa-figure">' + mdToHtml(figure) + '</div>';
+
+    parsedParts.forEach(p => {
+      const cleaned = p.txt;
+      const isMCQ = p.type === 'mcq' || (p.m === 1 && detectContentType(cleaned) === 'mcq');
+      const isDiagram = (p.type === 'diagram' || detectContentType(cleaned) === 'diagram') && !isMCQ;
+      const isCalc = (p.type === 'calculate' || detectContentType(cleaned) === 'calculate') && !isMCQ && !isDiagram;
+
+      const diagDescMatch = cleaned.match(/\[Diagram[:\s][^\]]*\]/i);
+      const cleanedFinal = diagDescMatch ? cleaned.replace(diagDescMatch[0],'').trim() : cleaned;
+
+      let embeddedOptions = null;
+      let questionText = cleanedFinal;
+      if (isMCQ) {
+        const optMatch = cleanedFinal.match(/([^\n]+)\n\s*A\s+(.+?)\n\s*B\s+(.+?)\n\s*C\s+(.+?)\n\s*D\s+(.+)/s)
+                      || cleanedFinal.match(/(.+?)\s{2,}A\s+(.+?)\s{2,}B\s+(.+?)\s{2,}C\s+(.+?)\s{2,}D\s+(.+)/s);
+        if (optMatch) {
+          questionText = optMatch[1].trim();
+          embeddedOptions = [optMatch[2].trim(), optMatch[3].trim(), optMatch[4].trim(), optMatch[5].trim()];
+        }
+      }
+      qHtml += renderPart(p, questionText, isMCQ, isDiagram || !!diagDescMatch, isCalc, embeddedOptions);
+    });
+
+    qHtml += '<div class="q-total">(Total for Question ' + qd.n + ' = 5 marks)</div></div>';
+    currentPageContent += qHtml;
+
+    // Each question gets its own page (real paper does this for readability)
+    pages.push(makePage(currentPageContent, pageNum, false));
+    pageNum++;
+    currentPageContent = '';
+  });
+
+  currentPageContent += '<div style="font-family:Arial;font-weight:bold;font-size:10pt;text-align:right;border-top:2px solid #000;padding-top:3mm;margin-top:3mm;">TOTAL FOR SECTION A = 25 MARKS</div>';
+  pages.push(makePage(currentPageContent, pageNum, false));
+  pageNum++;
+
+  return { pages, nextPage: pageNum };
+}
+
+// ── SECTION B ──────────────────────────────────────────────────────────────────
+function renderSectionBPages(raw, extracts, startPage) {
+  const pages = [];
+  let pageNum = startPage;
+
+  // Page: Section B header + extracts
+  const extractPage =
+    '<div class="sec-hdr-pg">SECTION B</div>' +
+    '<div class="sec-subhdr">Read the following extracts before answering Question 6.<br>' +
+    'Write your answers in the spaces provided.<br>' +
+    'You are advised to spend 1 hour on this section.</div>' +
+    '<div style="font-family:Arial;font-size:11pt;font-weight:bold;margin-bottom:3mm;">Question 6</div>' +
+    extracts;
+
+  pages.push(makePage(extractPage, pageNum, false));
+  pageNum++;
+
+  // Question overview page (list of all parts and marks — as in real paper)
+  const defs = [{l:'a',m:5},{l:'b',m:8},{l:'c',m:10},{l:'d',m:12},{l:'e',m:15}];
+  const ps = extractParts(raw, 6);
+
+  let overviewPage = '<div style="font-family:Arial;font-size:11pt;font-weight:bold;margin-bottom:4mm;">6</div>';
+  defs.forEach(d => {
+    const txt = cleanPart(ps[d.l] || '[' + d.m + '-mark question]', d.l);
+    overviewPage += '<div class="q-part-row" style="margin-bottom:3mm;">' +
+      '<div class="q-part-text"><span class="q-part-label">' + '(' + d.l + ')</span> ' + e(txt) + '</div>' +
+      '<div class="q-part-marks">(' + d.m + ')</div>' +
+    '</div>';
+  });
+  pages.push(makePage(overviewPage, pageNum, false));
+  pageNum++;
+
+  // Each part gets its own answer page(s)
+  defs.forEach(d => {
+    const txt = cleanPart(ps[d.l] || '[' + d.m + '-mark question]', d.l);
+    const isDiagram = /diagram|draw|illustrate/i.test(txt);
+    let partPage = '<div class="q-part-row" style="margin-bottom:4mm;">' +
+      '<div class="q-part-text"><span class="q-part-label">6(' + d.l + ')</span> ' + e(txt) + '</div>' +
+      '<div class="q-part-marks">(' + d.m + ')</div>' +
+    '</div>';
+    if (isDiagram) partPage += '<div class="diag-space">Space for diagram</div>';
+    partPage += answerLines(d.m);
+
+    pages.push(makePage(partPage, pageNum, false));
+    pageNum++;
+
+    // Longer answers need continuation pages
+    if (d.m >= 10) {
+      pages.push(makePage(answerLines(d.m), pageNum, false));
+      pageNum++;
+    }
+    if (d.m >= 15) {
+      pages.push(makePage(answerLines(20), pageNum, false));
+      pageNum++;
+    }
+  });
+
+  pages.push(makePage('<div style="font-family:Arial;font-weight:bold;font-size:10pt;text-align:right;border-top:2px solid #000;padding-top:3mm;">TOTAL FOR SECTION B = 50 MARKS</div>', pageNum, false));
+  pageNum++;
+
+  return { pages, nextPage: pageNum };
+}
+
+// ── SECTION C ──────────────────────────────────────────────────────────────────
+function renderSectionCPages(raw, startPage) {
+  const pages = [];
+  let pageNum = startPage;
+
+  function getEssay(text, qn) {
+    const lines = text.split('\n');
+    let found = false, out = [];
+    for (let i = 0; i < lines.length; i++) {
+      const stripped = lines[i].replace(/[*_#]/g,'').trim();
+      if (!found && (stripped.startsWith('Question ' + qn) || stripped === 'Q' + qn)) { found = true; continue; }
+      if (found) {
+        if (/^\s*[*_#]*\s*Question\s*\d/.test(lines[i])) break;
+        out.push(lines[i]);
+      }
+    }
+    return cleanEssay(out.join('\n').trim());
+  }
+
+  function splitEssayParts(text) {
+    if (!text) return { stem: '', question: text || '' };
+    const evalIdx = text.search(/Evaluate\b/i);
+    if (evalIdx > 10) return { stem: text.slice(0, evalIdx).trim(), question: text.slice(evalIdx).trim() };
+    return { stem: '', question: text };
+  }
+
+  const fb7 = getEssay(raw, 7) || getEssay(raw, '7') || 'Evaluate the view that...';
+  const fb8 = getEssay(raw, 8) || getEssay(raw, '8') || 'Evaluate the view that...';
+
+  const headerContent =
+    '<div class="sec-hdr-pg">SECTION C</div>' +
+    '<div class="sec-subhdr">Answer ONE question from this section.<br>' +
+    'Indicate which question you are answering by marking a cross in the box next to the question number.<br>' +
+    'You are advised to spend 30 minutes on this section.</div>';
+
+  [{ num: 7, text: fb7 }, { num: 8, text: fb8 }].forEach(essay => {
+    const parts = splitEssayParts(essay.text);
+    const essayContent = (essay.num === 7 ? headerContent : '') +
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4mm;">' +
+        '<div style="border:1.5px solid #000;width:16px;height:16px;display:inline-block;"></div>' +
+        '<div style="font-family:Arial;font-size:11pt;font-weight:bold;">Question ' + essay.num + '</div>' +
+      '</div>' +
+      (parts.stem ? '<div class="essay-stem">' + e(parts.stem) + '</div>' : '') +
+      '<div class="q-part-row" style="margin-bottom:4mm;">' +
+        '<div class="q-part-text essay-q-text">' + e(parts.question) + '</div>' +
+        '<div class="q-part-marks">(25)</div>' +
+      '</div>' +
+      answerLines(25);
+
+    pages.push(makePage(essayContent, pageNum, false));
+    pageNum++;
+    // Continuation page for 25-mark essay
+    pages.push(makePage(answerLines(30), pageNum, false));
+    pageNum++;
+  });
+
+  pages.push(makePage('<div style="font-family:Arial;font-weight:bold;font-size:10pt;text-align:right;border-top:2px solid #000;padding-top:3mm;">TOTAL FOR SECTION C = 25 MARKS</div><div style="font-family:Arial;font-weight:bold;font-size:10pt;text-align:right;margin-top:2mm;">TOTAL FOR PAPER = 100 MARKS</div>', pageNum, true));
+  pageNum++;
+
+  return { pages, nextPage: pageNum };
+}
+
+// ── PAPER 3 ────────────────────────────────────────────────────────────────────
+function renderP3Pages(saRaw, sbRaw, startPage) {
+  const pages = [];
+  let pageNum = startPage;
+  // Simplified P3 rendering — same structure principle
+  const secs = [{title:'SECTION A — MICROECONOMICS', raw:saRaw, qNum:1}, {title:'SECTION B — MACROECONOMICS', raw:sbRaw, qNum:2}];
+  secs.forEach(sec => {
+    const defs = [{l:'a',m:5},{l:'b',m:8},{l:'c',m:12},{l:'d',m:25},{l:'e',m:25}];
+    const ps = extractParts(sec.raw, sec.qNum);
+    let pg = '<div class="sec-hdr-pg">' + sec.title + '</div>';
+    defs.slice(0,3).forEach(d => {
+      const txt = cleanPart(ps[d.l] || '[' + d.m + '-mark question]', d.l);
+      pg += '<div class="q-part-row" style="margin-bottom:2mm;"><div class="q-part-text"><span class="q-part-label">(' + d.l + ')</span> ' + e(txt) + '</div><div class="q-part-marks">(' + d.m + ')</div></div>' + answerLines(d.m);
+      pages.push(makePage(pg, pageNum, false)); pageNum++; pg = '';
+    });
+    // Choice d/e
+    ['d','e'].forEach(l => {
+      const txt = cleanPart(ps[l] || '[25-mark evaluate question]', l);
+      pg = '<div class="choice-instr">Answer ONE question from (' + (l==='d'?'d) or (e':'e) or (d') + ').</div>' +
+        '<div class="q-part-row"><div class="q-part-text"><span class="q-part-label">(' + l + ')</span> ' + e(txt) + '</div><div class="q-part-marks">(25)</div></div>' + answerLines(25);
+      pages.push(makePage(pg, pageNum, false)); pageNum++; pg='';
+      pages.push(makePage(answerLines(30), pageNum, false)); pageNum++;
+    });
+  });
+  return { pages, nextPage: pageNum };
+}
+
 async function generate() {
   const apiKey = document.getElementById('apiKey').value.trim();
   if (!apiKey || !apiKey.startsWith('sk-ant')) {
