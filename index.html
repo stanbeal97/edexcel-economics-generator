@@ -66,11 +66,11 @@
   .empty-icon { width: 64px; height: 64px; border: 2px dashed var(--border); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 28px; }
   .empty h2 { font-size: 18px; color: var(--text); }
   .empty p { font-size: 14px; max-width: 340px; line-height: 1.6; }
-  .loading { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px; gap: 16px; }
+  .loading { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px; gap: 16px; background: white; border-radius: 8px; padding: 2rem; }
   .spinner { width: 36px; height: 36px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
   .ls { display: flex; flex-direction: column; gap: 8px; }
-  .ls-item { font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 10px; }
+  .ls-item { font-size: 13px; color: #333; display: flex; align-items: center; gap: 10px; }
   .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); flex-shrink: 0; }
   .dot.on { background: var(--accent); animation: pulse 1s infinite; }
   .dot.ok { background: #2e7d32; }
@@ -92,34 +92,9 @@
     font-family: 'Arial', sans-serif;
     font-size: 11pt;
     color: #000;
-    display: flex;
-    flex-direction: row;
   }
 
-  /* Left margin stripe — "DO NOT WRITE IN THIS AREA" */
-  .page-margin {
-    width: 28px;
-    min-height: 1123px;
-    background: repeating-linear-gradient(
-      45deg,
-      #888 0px, #888 2px,
-      #bbb 2px, #bbb 8px
-    );
-    flex-shrink: 0;
-    position: relative;
-  }
-  .page-margin-text {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%) rotate(-90deg);
-    white-space: nowrap;
-    font-size: 7pt;
-    font-weight: bold;
-    letter-spacing: 1px;
-    color: white;
-    font-family: Arial, sans-serif;
-  }
+  /* page-margin removed */
 
   /* Page content area */
   .page-content { flex: 1; padding: 18mm 14mm 18mm 10mm; min-height: 1123px; box-sizing: border-box; }
@@ -404,7 +379,6 @@
       break-after: page;
     }
     .page-content { padding: 15mm 14mm 25mm 8mm; }
-    .page-margin { min-height: 297mm; }
     .turn-over { display: block; }
   }
 
@@ -617,7 +591,7 @@ function showLoading(useSearch) {
   const steps = useSearch
     ? ['Searching for current economic news…','Selecting case study material…','Writing stimulus extracts…','Generating questions…','Finalising mark allocations…']
     : ['Selecting case study scenario…','Writing stimulus extracts…','Generating questions…','Applying mark allocations…','Formatting paper…'];
-  document.getElementById('paperArea').innerHTML = `<div class="loading"><div class="spinner"></div><p style="font-size:14px;color:var(--muted)">Generating — please wait (20–30 seconds)…</p><div class="ls">${steps.map((s,i)=>`<div class="ls-item"><div class="dot" id="d${i}"></div>${s}</div>`).join('')}</div></div>`;
+  document.getElementById('paperArea').innerHTML = `<div class="loading"><div class="spinner"></div><p style="font-size:14px;color:#222;font-weight:500">Generating — please wait (20–30 seconds)…</p><div class="ls">${steps.map((s,i)=>`<div class="ls-item"><div class="dot" id="d${i}"></div>${s}</div>`).join('')}</div></div>`;
   let cur = 0;
   return setInterval(() => {
     if (cur > 0) { const d = document.getElementById(`d${cur-1}`); if(d) d.className = 'dot ok'; }
@@ -722,7 +696,6 @@ function answerLines(marks) {
 
 function makePage(pageContent, pageNum, isLast) {
   return '<div class="a4-page">' +
-    '<div class="page-margin"><span class="page-margin-text">DO NOT WRITE IN THIS AREA</span></div>' +
     '<div class="page-content">' + pageContent + '</div>' +
     (isLast ? '' : '<div class="turn-over">Turn over &#9654;</div>') +
     '<div class="page-footer">' + pageNum + '</div>' +
@@ -761,7 +734,7 @@ function renderPaper(text, pk) {
     '</div>' +
     '<div class="cover-edexcel-label">Pearson Edexcel Level 3 GCE</div>' +
     '<div class="cover-datetime-bar">' +
-      '<div class="cover-datetime-left">' + dateStr + '<br>Morning (Time: ' + s.time + ')</div>' +
+      '<div class="cover-datetime-left">' + dateStr + '<br>Time allowed: ' + s.time + '</div>' +
       '<div class="cover-paper-ref">' +
         '<div class="ref-code">' + s.code + '&nbsp;&nbsp;Paper reference</div>' +
         '<div style="font-size:9pt;font-family:Arial">Total Marks</div>' +
