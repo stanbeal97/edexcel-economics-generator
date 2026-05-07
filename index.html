@@ -1,7 +1,11 @@
 <!DOCTYPE html>
+<!-- Edexcel Economics Generator v3.0 | Built: 2026-05-07 13:04:46 | Cache-bust: -3436339858360062238 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Edexcel A Level Economics A — Exam Generator</title>
 <style>
@@ -536,6 +540,7 @@
 </div>
 
 <script>
+// v3.0 | 2026-05-07 13:04:46
 // ─── PAPER STRUCTURE DEFINITIONS (verified from official past papers) ─────────
 //
 // Papers 1 & 2: Section A (25 marks) + Section B (50 marks) + Section C (25 marks)
@@ -925,7 +930,7 @@ function getQBlock(raw, n) {
     else if (start !== -1 && (/^\s*[*_#]*\s*Question\s*\d/.test(lines[i]) || /^\s*Section\s+[ABC]/i.test(lines[i]))) { end = i; break; }
   }
   return start !== -1 ? lines.slice(start, end).join('\n') : '';
-  }
+}
 
 function getFigure(block) {
   // Extract everything before the first sub-part (a)(b)(c)
@@ -941,9 +946,9 @@ function getFigure(block) {
     return figMatch ? figMatch[0].trim() : beforeParts.trim();
   }
   return '';
-  }
+}
 
-  // Strip ALL figure/table content from a text block to avoid double-rendering.
+// Strip ALL figure/table content from a text block to avoid double-rendering.
   // Removes: table rows, Figure/Table headers, Source lines, and any prose
   // intro sentence that immediately precedes a table (e.g. "The following data shows...")
 function stripFigure(text) {
@@ -984,8 +989,7 @@ function stripFigure(text) {
     out.push(lines[i]);
   }
   return out.join('\n').trim();
-  }
-
+}
 function getIntro(block) {
   // Get the question context sentence — stop before any figure, table, or sub-part
   // Also stop before "The following data..." intro sentences (these belong in the figure box)
@@ -1006,8 +1010,7 @@ function getIntro(block) {
     if (t) intro.push(t);
   }
   return intro.join(' ').replace(/^Question\s*\d+\s*/i,'').replace(/[*_#]/g,'').trim();
-  }
-
+}
 // ── PAPERS 1 & 2 Section A ────────────────────────────────────────────────────
 // Real format (verified from 2023/2024 past papers):
 // 5 standalone questions each with their OWN embedded figure/data (NOT the main extracts)
@@ -1920,6 +1923,21 @@ STRICTLY OFF-SPECIFICATION — NEVER generate questions on these:
     setStatus('Error — see details.');
   }
 }
+</script>
+<script>
+// Runtime function availability check
+window.addEventListener('load', function() {
+  const required = ['renderPaper','renderSectionAPages','renderSectionBPages',
+    'renderSectionCPages','getQBlock','getFigure','stripFigure','getIntro',
+    'buildExtracts','extractParts','cleanPart','cleanEssay','mdToHtml',
+    'answerLines','makePage'];
+  const missing = required.filter(fn => typeof window[fn] === 'undefined');
+  if (missing.length > 0) {
+    console.error('MISSING FUNCTIONS:', missing.join(', '));
+  } else {
+    console.log('All required functions available ✓');
+  }
+});
 </script>
 </body>
 </html>
