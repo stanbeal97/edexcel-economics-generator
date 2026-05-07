@@ -1866,7 +1866,51 @@ STRICTLY OFF-SPECIFICATION — NEVER generate questions on these:
       throw new Error(err.error?.message || `API error ${resp.status} — check your API key has credits.`);
     }
 
-    const data = await resp.json();
+    let data = await resp.json();
+
+    // Agentic loop: if the model used web search tools, keep calling until
+    // stop_reason is 'end_turn' and we have a final text response
+    let loopCount = 0;
+    while (data.stop_reason === 'tool_use' && loopCount < 8) {
+      loopCount++;
+      // Collect tool use blocks and build tool_result messages
+      const toolUseBlocks = data.content.filter(b => b.type === 'tool_use');
+      const toolResults = toolUseBlocks.map(tu => ({
+        type: 'tool_result',
+        tool_use_id: tu.id,
+        content: tu.input ? JSON.stringify(tu.input) : 'Search completed'
+      }));
+
+      // Continue the conversation with the tool results
+      const continueBody = {
+        model: body.model,
+        max_tokens: body.max_tokens,
+        system: body.system,
+        tools: body.tools,
+        messages: [
+          ...body.messages,
+          { role: 'assistant', content: data.content },
+          { role: 'user', content: toolResults }
+        ]
+      };
+
+      const continueResp = await fetch('https://economics-proxy.stanbeal97.workers.dev', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify(continueBody)
+      });
+
+      if (!continueResp.ok) {
+        const err = await continueResp.json().catch(()=>({}));
+        throw new Error(err.error?.message || 'Error during web search follow-up.');
+      }
+      data = await continueResp.json();
+    }
+
     const text = data.content.filter(b=>b.type==='text').map(b=>b.text).join('\n');
     if (!text.trim()) throw new Error('Empty response — please try again.');
 
